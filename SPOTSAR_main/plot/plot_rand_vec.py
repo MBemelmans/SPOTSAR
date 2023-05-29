@@ -1,10 +1,10 @@
-def plot_rand_vec(self,idx,step,border=0.05,alpha=0.3,power=2):
+def plot_rand_vec(obj,idx,step,border=0.05,alpha=0.3,power=2):
         """
         Highlights a random vector in the offset map to assess if the vector is a outlier.
         Also calculates local weighted L2 based on overlapping region (windowsize-stepsize dependent)
 
         Args:
-            self: single kernel object
+            obj: single kernel object
             idx (int): index of random vector
             border (float, optional): Local region to plot vector_coords +/- border. 
                                       Defaults to 0.05.
@@ -16,32 +16,32 @@ def plot_rand_vec(self,idx,step,border=0.05,alpha=0.3,power=2):
         """
 
         # get vector info
-        q_vec = (self.X_off_vec[idx], self.Y_off_vec[idx])
-        q_pos = (self.Lon_off_vec[idx], self.Lat_off_vec[idx])
-        q_r_idx = self.R_idx_vec[idx]
-        q_a_idx = self.A_idx_vec[idx]
+        q_vec = (obj.X_off_vec[idx], obj.Y_off_vec[idx])
+        q_pos = (obj.Lon_off_vec[idx], obj.Lat_off_vec[idx])
+        q_r_idx = obj.R_idx_vec[idx]
+        q_a_idx = obj.A_idx_vec[idx]
 
         # how much to overlap?
         # window has some overlap if n*step_size<window_size
-        region_filter = (np.where(np.abs(self.R_idx_vec-q_r_idx)<self.R_win) & np.where(np.abs(self.A_idx_vec-q_a_idx)<self.A_win))
+        region_filter = (np.where(np.abs(obj.R_idx_vec-q_r_idx)<obj.R_win) & np.where(np.abs(obj.A_idx_vec-q_a_idx)<obj.A_win))
 
         # get larger filter for plotting neighborhood
-        region_filter2 = (np.where((np.abs(self.R_idx_vec-q_r_idx)<3*self.R_win) & (np.abs(self.A_idx_vec-q_a_idx)<3*self.A_win)))
+        region_filter2 = (np.where((np.abs(obj.R_idx_vec-q_r_idx)<3*obj.R_win) & (np.abs(obj.A_idx_vec-q_a_idx)<3*obj.A_win)))
 
 
-        Q_region_r_idx = self.R_idx_vec[region_filter]
-        Q_region_a_idx = self.A_idx_vec[region_filter]
+        Q_region_r_idx = obj.R_idx_vec[region_filter]
+        Q_region_a_idx = obj.A_idx_vec[region_filter]
 
         # get distances
-        lons_Q_region = self.Lon_off[region_filter]
-        lats_Q_region = self.Lat_off[region_filter]
+        lons_Q_region = obj.Lon_off[region_filter]
+        lats_Q_region = obj.Lat_off[region_filter]
         Q_lonlat = np.column_stack(lons_Q_region,lats_Q_region)
         dists = haversine_distances(Q_lonlat, q_pos)
         weights = 1/(dists**power)
         weights = weights/np.sum(weights)
 
-        Dx = self.X_off_vec[region_filter]-q_vec[0]
-        Dy = self.Y_off_vec[region_filter]-q_vec[1]
+        Dx = obj.X_off_vec[region_filter]-q_vec[0]
+        Dy = obj.Y_off_vec[region_filter]-q_vec[1]
         
         wL2 = np.sum(np.hypot(Dx,Dy)*weights)
 
@@ -50,10 +50,10 @@ def plot_rand_vec(self,idx,step,border=0.05,alpha=0.3,power=2):
         ax1=fig.add_subplot(gs[0,0]) # First row, first column
 
         ax1.quiver(
-                self.Lon_off_vec[::step],
-                self.Lat_off_vec[region_filter2],
-                self.X_off_vec[region_filter2],
-                self.Y_off_vec[region_filter2],
+                obj.Lon_off_vec[::step],
+                obj.Lat_off_vec[region_filter2],
+                obj.X_off_vec[region_filter2],
+                obj.Y_off_vec[region_filter2],
                 facecolor = 'black',
                 scale=50, width = 0.005,
                 edgecolor="k", alpha = 0.3

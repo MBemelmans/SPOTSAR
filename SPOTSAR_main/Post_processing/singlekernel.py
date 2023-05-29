@@ -461,7 +461,7 @@ class SingleKernel:
             Returns:
                 _type_: _description_
             """
-            import random
+
             from sklearn.metrics.pairwise import haversine_distances
 
             power = 2
@@ -472,26 +472,29 @@ class SingleKernel:
                 if np.mod(idx,1000)==0:
                     print(idx)
                     
-                q_vec = (test_data.X_off_vec[idx], test_data.Y_off_vec[idx])
-                q_pos = (test_data.Lon_off_vec[idx], test_data.Lat_off_vec[idx])
-                q_r_idx = int(test_data.R_idx_vec[idx])
-                q_a_idx = int(test_data.A_idx_vec[idx])
+                q_vec = (self.X_off_vec[idx], self.Y_off_vec[idx])
+                q_pos = (self.Lon_off_vec[idx], self.Lat_off_vec[idx])
+                q_r_idx = int(self.R_idx_vec[idx])
+                q_a_idx = int(self.A_idx_vec[idx])
 
 
                 # how much to overlap?
                 # window has some overlap if n*step_size<window_size
-                region_filter = (np.where((np.abs(test_data.R_idx_vec-q_r_idx)<test_data.R_win) &  (np.abs(test_data.A_idx_vec-q_a_idx)<test_data.A_win) & (test_data.R_idx_vec != q_r_idx) & (test_data.A_idx_vec != q_a_idx)))
+                region_filter = (np.where((np.abs(self.R_idx_vec-q_r_idx)<self.R_win) &
+                                          (np.abs(self.A_idx_vec-q_a_idx)<self.A_win) & 
+                                          (self.R_idx_vec != q_r_idx) & 
+                                          (self.A_idx_vec != q_a_idx)))
                 
                 if np.sum(region_filter)==0:
                     continue
-                Q_region_r_idx = test_data.R_idx_vec[region_filter]
-                Q_region_a_idx = test_data.A_idx_vec[region_filter]
+                Q_region_r_idx = self.R_idx_vec[region_filter]
+                Q_region_a_idx = self.A_idx_vec[region_filter]
 
                 # get distances
-                lons_Q_region = test_data.Lon_off_vec[region_filter]
-                lats_Q_region = test_data.Lat_off_vec[region_filter]
-                Dx = test_data.X_off_vec[region_filter]-q_vec[0]
-                Dy = test_data.Y_off_vec[region_filter]-q_vec[1]
+                lons_Q_region = self.Lon_off_vec[region_filter]
+                lats_Q_region = self.Lat_off_vec[region_filter]
+                Dx = self.X_off_vec[region_filter]-q_vec[0]
+                Dy = self.Y_off_vec[region_filter]-q_vec[1]
 
                 Q_lonlat = np.column_stack((lons_Q_region,lats_Q_region))
                 dists = haversine_distances(Q_lonlat, np.reshape(q_pos,(1,-1)))
