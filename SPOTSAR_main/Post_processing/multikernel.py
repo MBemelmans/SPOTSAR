@@ -1,5 +1,6 @@
-
-
+import pandas as pd
+import numpy as np
+from .singlekernel import SingleKernel
 
 class MultiKernel:
 
@@ -179,7 +180,7 @@ class MultiKernel:
             ccs_off = ccs_map
 
             # make object
-            offset_data = dataset(file,[date_1,date_2],[r__win,a__win],self.Heading,[r_idx,a_idx,r_off,a_off,ccp_off,lat_off,lon_off,ccs_off])
+            offset_data = SingleKernel(file,[date_1,date_2],[r__win,a__win],self.Heading,[r_idx,a_idx,r_off,a_off,ccp_off,lat_off,lon_off,ccs_off])
             # do pre-stacking processing
             offset_data.calc_SNR()
             offset_data.calc_Mag()

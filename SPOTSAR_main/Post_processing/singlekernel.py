@@ -1,5 +1,6 @@
 from sklearn import preprocessing as pre
 from sklearn.decomposition import PCA
+import numpy as np
 
 class SingleKernel:
     """ 

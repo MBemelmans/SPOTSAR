@@ -1,7 +1,3 @@
-from . import Post_processing
-from . import plot
-from . import TS_processing
-
 
 import numpy as np
 import pandas as pd
@@ -67,3 +63,7 @@ import sklearn.preprocessing as pre # for data normalisation
 from sklearn.metrics import pairwise_distances
 
 from cmcrameri import cm # for scientific colourmaps
+
+from . import Post_processing
+from . import plot
+from . import TS_processing
