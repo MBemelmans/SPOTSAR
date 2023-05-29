@@ -8,3 +8,4 @@ from .plot_ra_vel import plot_ra_vel
 from .swath_profiler import swath_profiler       
 from .TS_mat_plot import TS_mat_plot          
 from .TS_plot import TS_plot              
+from .get_1deg_dist import get_1deg_dist
