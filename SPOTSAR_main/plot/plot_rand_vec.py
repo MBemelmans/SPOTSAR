@@ -6,7 +6,7 @@ from matplotlib import colors as mcolors
 from sklearn.metrics.pairwise import haversine_distances
 from matplotlib.gridspec import GridSpec
 
-def plot_rand_vec(obj,idx,step,border=0.05,alpha=0.3,power=2):
+def plot_rand_vec(obj,idx,step,border=0.005,alpha=0.3,power=2):
         """
         Highlights a random vector in the offset map to assess if the vector is a outlier.
         Also calculates local weighted L2 based on overlapping region (windowsize-stepsize dependent)
@@ -32,16 +32,26 @@ def plot_rand_vec(obj,idx,step,border=0.05,alpha=0.3,power=2):
 
         # how much to overlap?
         # window has some overlap if n*step_size<window_size
-        region_filter = (np.where((np.abs(obj.R_idx_vec-q_r_idx)<obj.R_win) &
-                                (np.abs(obj.A_idx_vec-q_a_idx)<obj.A_win) & 
-                                (obj.R_idx_vec != q_r_idx) & 
-                                (obj.A_idx_vec != q_a_idx)))
+        region_filter = (
+            np.where(
+                (
+                    (np.abs(obj.R_idx_vec - q_r_idx) < obj.R_win) &
+                    (np.abs(obj.A_idx_vec - q_a_idx) < obj.A_win)
+                ) &
+                ~((obj.R_idx_vec == q_r_idx) & (obj.A_idx_vec == q_a_idx))
+            )
+        )
 
         # get larger filter for plotting neighborhood
-        region_filter2 =  (np.where((np.abs(obj.R_idx_vec-q_r_idx)<3*obj.R_win) &
-                                (np.abs(obj.A_idx_vec-q_a_idx)<3*obj.A_win) & 
-                                (obj.R_idx_vec != q_r_idx) & 
-                                (obj.A_idx_vec != q_a_idx)))
+        region_filter2 =  (
+            np.where(
+                (
+                    (np.abs(obj.R_idx_vec - q_r_idx) < 3 * obj.R_win) &
+                    (np.abs(obj.A_idx_vec - q_a_idx) < 3 * obj.A_win)
+                ) &
+                ~((obj.R_idx_vec == q_r_idx) & (obj.A_idx_vec == q_a_idx))
+            )
+        )
 
 
         Q_region_r_idx = obj.R_idx_vec[region_filter]
@@ -58,7 +68,7 @@ def plot_rand_vec(obj,idx,step,border=0.05,alpha=0.3,power=2):
         Dx = obj.X_off_vec[region_filter]-q_vec[0]
         Dy = obj.Y_off_vec[region_filter]-q_vec[1]
         
-        wL2 = np.sum(np.hypot(Dx,Dy)*weights)/np.sum(region_filter)
+        wL2 = np.sum(np.hypot(Dx,Dy)*weights)
 
         fig=plt.figure(figsize=(10,10))
         gs=GridSpec(1,1) # 2 rows, 2 columns
@@ -72,6 +82,15 @@ def plot_rand_vec(obj,idx,step,border=0.05,alpha=0.3,power=2):
                 facecolor = 'black',
                 scale=50, width = 0.005,
                 edgecolor="k", alpha = 0.3
+            )
+        ax1.quiver(
+                q_pos[0],
+                q_pos[1],
+                q_vec[0],
+                q_vec[1],
+                facecolor = 'red',
+                scale=50, width = 0.005,
+                edgecolor="k", alpha = 1
             )
 
         qv = ax1.quiver(
