@@ -9,3 +9,5 @@ from .swath_profiler import swath_profiler
 from .TS_mat_plot import TS_mat_plot          
 from .TS_plot import TS_plot              
 from .get_1deg_dist import get_1deg_dist
+from .plot_rand_vec import plot_rand_vec
+from .plot_vec_attr import plot_vec_attr

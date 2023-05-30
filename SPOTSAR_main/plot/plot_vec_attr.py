@@ -1,3 +1,12 @@
+import copy
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib_scalebar.scalebar import ScaleBar
+from matplotlib.gridspec import GridSpec
+
+import pyproj
+from pyproj import CRS
+
 def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_extent = []):
     """
     Plots displacement as vectors in slantrange - azimuth plane and 
@@ -14,7 +23,7 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
         dem_extent (list, optional): _description_. Defaults to [] -> do not use.
     """
     # get length of 1 deg. for scalebar
-    import get_1deg_dist
+    from .get_1deg_dist import get_1deg_dist
     distance_meters = get_1deg_dist()
 
     # copy data to manipulate limits without messing with the original data
@@ -26,7 +35,9 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
 
     # plotting
     fig1, axes = plt.subplots(1,1,figsize=(8,8))
-    axes[0].imshow(shading,cmap=cm.grayC,alpha=0.5, extent=dem_extent)
+    if (shading != []) and (dem_extent != []):
+        axes[0].imshow(shading,cmap=cm.grayC,alpha=0.5, extent=dem_extent)
+    
     q = axes[0].quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
                     obj.X_off[::step,::step],obj.Y_off[::step,::step],
                     attr_copy[::step,::step],

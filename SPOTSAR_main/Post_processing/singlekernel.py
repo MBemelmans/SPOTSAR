@@ -1,6 +1,8 @@
 from sklearn import preprocessing as pre
 from sklearn.decomposition import PCA
 import numpy as np
+from numba import vectorize
+from sklearn.metrics.pairwise import haversine_distances
 
 class SingleKernel:
     """ 
@@ -309,10 +311,6 @@ class SingleKernel:
         ll = np.column_stack((self.Lat_off_vec,self.Lon_off_vec))
         self.Dist_mat = pairwise_distances(ll,ll,metric='haversine')
         return self.Dist_mat
-    
-
-        
-
 
     def prep_DBSCAN(self,mode,plot_hist,n_bins):
         """
@@ -453,53 +451,89 @@ class SingleKernel:
         if hasattr(self,'Phase'):
             self.Phase = np.reshape(np.where(nan_mask,np.nan,self.Phase),arr_shape)
         self.Nan_mask2 = np.reshape(nan_mask,arr_shape)
+    
+    
+    
+    # @vectorize(['float64(float64,float64)'])
+    def calc_local_L2(self):
+        """ calculates local outlier disimilarity score
 
+        Returns:
+            _type_: _description_
+        """
 
-        def calc_local_L2(self):
-            """ calculates local outlier disimilarity score
+        power = 2
 
-            Returns:
-                _type_: _description_
-            """
+        # get vector info
+        wL2 = np.full(np.shape(self.X_off),np.nan)
 
-            from sklearn.metrics.pairwise import haversine_distances
+        # initialize data for vectorize decorator
+        X_off_vec = self.X_off_vec # float64
+        Y_off_vec = self.Y_off_vec # float64
+        Lat_off_vec = self.Lat_off_vec # float64
+        Lon_off_vec = self.Lon_off_vec # float64
+        R_idx_vec = self.R_idx_vec # int32
+        A_idx_vec = self.A_idx_vec # int32
+        Row_index_vec = self.Row_index_vec #int32
+        Col_index_vec = self.Col_index_vec #int32
+        A_win = self.A_win # int32
+        R_win = self.R_win # int32
 
-            power = 2
-
-            # get vector info
-            self.wL2 = np.full(np.shape(self.X_off),np.nan)
-            for idx in range(len(self.X_off_vec)):
+        # @vectorize(['float64(float64,float64,float64,float64,int32,int32,int32,int32,int32,int32)'],forceobj=True)
+        def do_loops(X_off_vec,Y_off_vec,Lat_off_vec,Lon_off_vec,R_idx_vec,A_idx_vec,Row_index_vec,Col_index_vec,A_win,R_win):
+            for idx in range(np.size(X_off_vec)):
                 if np.mod(idx,1000)==0:
                     print(idx)
                     
-                q_vec = (self.X_off_vec[idx], self.Y_off_vec[idx])
-                q_pos = (self.Lon_off_vec[idx], self.Lat_off_vec[idx])
-                q_r_idx = int(self.R_idx_vec[idx])
-                q_a_idx = int(self.A_idx_vec[idx])
+                q_vec = (X_off_vec[idx], Y_off_vec[idx])
+                q_pos = (Lon_off_vec[idx], Lat_off_vec[idx])
+                q_r_idx = int(R_idx_vec[idx])
+                q_a_idx = int(A_idx_vec[idx])
 
 
                 # how much to overlap?
                 # window has some overlap if n*step_size<window_size
-                region_filter = (np.where((np.abs(self.R_idx_vec-q_r_idx)<self.R_win) &
-                                          (np.abs(self.A_idx_vec-q_a_idx)<self.A_win) & 
-                                          (self.R_idx_vec != q_r_idx) & 
-                                          (self.A_idx_vec != q_a_idx)))
+                region_filter = (np.where((np.abs(R_idx_vec-q_r_idx)<R_win) &
+                                            (np.abs(A_idx_vec-q_a_idx)<A_win) & 
+                                            (R_idx_vec != q_r_idx) & 
+                                            (A_idx_vec != q_a_idx)))
                 
                 if np.sum(region_filter)==0:
                     continue
-                Q_region_r_idx = self.R_idx_vec[region_filter]
-                Q_region_a_idx = self.A_idx_vec[region_filter]
+                Q_region_r_idx = R_idx_vec[region_filter]
+                Q_region_a_idx = A_idx_vec[region_filter]
 
                 # get distances
-                lons_Q_region = self.Lon_off_vec[region_filter]
-                lats_Q_region = self.Lat_off_vec[region_filter]
-                Dx = self.X_off_vec[region_filter]-q_vec[0]
-                Dy = self.Y_off_vec[region_filter]-q_vec[1]
+                lons_Q_region = Lon_off_vec[region_filter]
+                lats_Q_region = Lat_off_vec[region_filter]
+                Dx = X_off_vec[region_filter]-q_vec[0]
+                Dy = Y_off_vec[region_filter]-q_vec[1]
 
                 Q_lonlat = np.column_stack((lons_Q_region,lats_Q_region))
                 dists = haversine_distances(Q_lonlat, np.reshape(q_pos,(1,-1)))
+                # own haversine function (is not faster...)
+                # dists = 2*np.arcsin(np.sqrt(np.sin((np.deg2rad(lats_Q_region)-np.deg2rad(q_pos[1]))/2)
+                #                              + np.cos(np.deg2rad(lats_Q_region))*np.cos(np.deg2rad(q_pos[1]))
+                #                              * np.sin((np.deg2rad(lons_Q_region)-np.deg2rad(q_pos[0]))/2)**2))
+
                 weights = 1/(dists**power)
                 weights = weights/np.sum(weights)
-                self.wL2[self.Row_index_vec[idx],self.Col_index_vec[idx]] = np.sum(np.hypot(Dx,Dy)*weights)/np.size(dists)
-            return self.wL2
+                wL2[Row_index_vec[idx],Col_index_vec[idx]] = np.sum(np.hypot(Dx,Dy)*weights)/np.size(dists)
+            return wL2
+        
+        self.wL2 = do_loops(X_off_vec,Y_off_vec,Lat_off_vec,Lon_off_vec,R_idx_vec,A_idx_vec,Row_index_vec,Col_index_vec,A_win,R_win)
+        return self.wL2
+
+    def get_data_4_wL2(self):
+        return [self.X_off,
+                self.X_off_vec,
+                self.Y_off_vec,
+                self.Lat_off_vec,
+                self.Lon_off_vec,
+                self.R_idx_vec,
+                self.A_idx_vec,
+                self.Row_index_vec,
+                self.Col_index_vec,
+                self.A_win,
+                self.R_win]
 

@@ -1,3 +1,6 @@
+import pyproj
+from pyproj import CRS
+
 def get_1deg_dist():
     """ Get distance of 1 degree of a great circle 
         for plotting scalebars in figures
