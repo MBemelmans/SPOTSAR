@@ -105,4 +105,4 @@ def plot_rand_vec(obj,idx,step,border=0.005,alpha=0.3,power=2):
         ax1.quiverkey(qv,0.5,0.95,3,'Displacement (3m)', labelpos = 'E',coordinates='figure')
         ax1.set_xlim([q_pos[0]-border, q_pos[0]+border])
         ax1.set_ylim([q_pos[1]-border, q_pos[1]+border])
-        ax1.set_title(f'{q_r_idx},{q_a_idx},{wL2}')
+        ax1.set_title(f'{q_r_idx},{q_a_idx},{wL2},{np.size(dists)}')

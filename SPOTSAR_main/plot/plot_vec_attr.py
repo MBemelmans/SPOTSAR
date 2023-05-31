@@ -35,25 +35,25 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
 
     # plotting
     fig1, axes = plt.subplots(1,1,figsize=(8,8))
-    if (shading != []) and (dem_extent != []):
-        axes[0].imshow(shading,cmap=cm.grayC,alpha=0.5, extent=dem_extent)
+    if (dem_extent != []):
+        axes.imshow(shading,cmap=cm.grayC,alpha=0.5, extent=dem_extent)
     
-    q = axes[0].quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
+    q = axes.quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
                     obj.X_off[::step,::step],obj.Y_off[::step,::step],
                     attr_copy[::step,::step],
                     scale=scale, 
                     width = 0.01, 
                     edgecolor='black',
                     linewidth=0.2)
-    axes[0].set_ylim([np.min(obj.Lat_off_vec),np.max(obj.Lat_off_vec)])
-    axes[0].set_xlim([np.min(obj.Lon_off_vec),np.max(obj.Lon_off_vec)])
-    axes[0].add_artist(ScaleBar(distance_meters,location='lower right'))
-    fig1.colorbar(q,ax=axes[0],extend='both')
-    qk = axes[0].quiverkey(q,
+    axes.set_ylim([np.min(obj.Lat_off_vec),np.max(obj.Lat_off_vec)])
+    axes.set_xlim([np.min(obj.Lon_off_vec),np.max(obj.Lon_off_vec)])
+    axes.add_artist(ScaleBar(distance_meters,location='lower right'))
+    fig1.colorbar(q,ax=axes,extend='both')
+    qk = axes.quiverkey(q,
                              0.5,
                              0.9,
                              qk_length,
                              str(qk_length) +' m displacement in slant range–azimuth plane',
                              labelpos = 'E',
                              coordinates='figure')
-    axes[0].set_title(f'{attr}: min = {np.max([np.min(attr_copy),attr_lims[0]])} max = {np.min([np.max(attr_copy),attr_lims[1]])}')
+    axes.set_title(f'{attr}: min = {np.max([np.min(attr_copy),attr_lims[0]])} max = {np.min([np.max(attr_copy),attr_lims[1]])}')
