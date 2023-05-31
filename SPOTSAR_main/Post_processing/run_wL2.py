@@ -57,10 +57,23 @@ from numba import jit, njit, int32, float64
 from sklearn.metrics.pairwise import haversine_distances
 from joblib import Parallel, delayed
 
+from numba import jit
+
+@jit(nopython=True)
+def fast_haversine_distances(x, y):
+    diff_lat = y[:, 0] - x[:, 0]
+    diff_lon = y[:, 1] - x[:, 1]
+    a = np.sin(diff_lat / 2) ** 2 + (
+        np.cos(x[:, 0]) * np.cos(y[:, 0]) * np.sin(diff_lon / 2) ** 2
+    )
+    c = 2 * np.arcsin(np.sqrt(a))
+    return c
+
+# @jit(nopython=True)
 def calculate_weighted_sum(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, R_idx_vec, A_idx_vec, Row_index_vec, Col_index_vec, A_win, R_win):
     power = 2
     q_vec = (X_off_vec[idx], Y_off_vec[idx])
-    q_pos = (Lon_off_vec[idx], Lat_off_vec[idx])
+    q_pos = [[Lat_off_vec[idx], Lon_off_vec[idx]]]
     q_r_idx = int(R_idx_vec[idx])
     q_a_idx = int(A_idx_vec[idx])
 
@@ -79,8 +92,8 @@ def calculate_weighted_sum(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, 
     Dx = X_off_vec[region_filter]-q_vec[0]
     Dy = Y_off_vec[region_filter]-q_vec[1]
 
-    Q_lonlat = np.column_stack((lons_Q_region,lats_Q_region))
-    dists = haversine_distances(Q_lonlat, np.reshape(q_pos,(1,-1)))
+    Q_latlon = np.column_stack((lons_Q_region,lats_Q_region))
+    dists = fast_haversine_distances(Q_latlon, q_pos)
     # dists = 2*np.arcsin(np.sqrt(np.sin((np.deg2rad(lats_Q_region)-np.deg2rad(q_pos[1]))/2)
     #                              + np.cos(np.deg2rad(lats_Q_region))*np.cos(np.deg2rad(q_pos[1]))
     #                              * np.sin((np.deg2rad(lons_Q_region)-np.deg2rad(q_pos[0]))/2)**2))
@@ -92,9 +105,11 @@ def calculate_weighted_sum(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, 
 
 def run_wL2(X_off,X_off_vec,Y_off_vec,Lat_off_vec,Lon_off_vec,R_idx_vec,A_idx_vec,Row_index_vec,Col_index_vec,A_win,R_win):
     wL2 = np.full(np.shape(X_off), np.nan)
-    results = Parallel(n_jobs=-1)(delayed(calculate_weighted_sum)(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, R_idx_vec, A_idx_vec, Row_index_vec, Col_index_vec, A_win, R_win) for idx in range(np.shape(X_off_vec)[0]))
-    for idx, result in enumerate(results):
-        if np.mod(idx,1000) == 0:
-            print(idx)
-        wL2[Row_index_vec[idx], Col_index_vec[idx]] = result
+    # results = Parallel(n_jobs=-1)(delayed(calculate_weighted_sum)(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, R_idx_vec, A_idx_vec, Row_index_vec, Col_index_vec, A_win, R_win) for idx in range(np.shape(X_off_vec)[0]))
+    # for idx, result in enumerate(results):
+    #     if np.mod(idx,1000) == 0:
+    #         print(idx)
+        # wL2[Row_index_vec[idx], Col_index_vec[idx]] = result
+    for idx in range(np.shape(X_off_vec)[0]):
+        wL2[Row_index_vec[idx], Col_index_vec[idx]] = calculate_weighted_sum(idx, X_off_vec, Y_off_vec, Lat_off_vec, Lon_off_vec, R_idx_vec, A_idx_vec, Row_index_vec, Col_index_vec, A_win, R_win)
     return wL2

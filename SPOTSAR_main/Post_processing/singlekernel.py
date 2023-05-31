@@ -497,7 +497,7 @@ class SingleKernel:
                     print(idx)
                     
                 q_vec = (X_off_vec[idx], Y_off_vec[idx])
-                q_pos = np.array([Lat_off_vec[idx], Lon_off_vec[idx]]).reshape(1,-1)
+                q_pos = [[Lat_off_vec[idx], Lon_off_vec[idx]]]
                 q_r_idx = int(R_idx_vec[idx])
                 q_a_idx = int(A_idx_vec[idx])
 
@@ -521,8 +521,8 @@ class SingleKernel:
                 Dy = Y_off_vec[region_filter]-q_vec[1]
 
                 Q_latlon = np.column_stack((lats_Q_region,lons_Q_region))
-                dists = np.array([slow_haversine_distances(x, q_pos) for x in Q_latlon])
-                # dists = optimized_haversine_distances(Q_lonlat, np.reshape(q_pos,(1,-1)))
+                # dists = np.array([slow_haversine_distances(x, q_pos) for x in Q_latlon])
+                dists = haversine_distances(Q_latlon, q_pos)
                 # own haversine function (is not faster...)
                 # dists = 2*np.arcsin(np.sqrt(np.sin((np.deg2rad(lats_Q_region)-np.deg2rad(q_pos[1]))/2)
                 #                              + np.cos(np.deg2rad(lats_Q_region))*np.cos(np.deg2rad(q_pos[1]))
