@@ -9,7 +9,7 @@ from cmcrameri import cm
 import pyproj
 from pyproj import CRS
 
-def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_extent = []):
+def plot_vec_attr(obj,attr,step,scale,attr_lims=[0,1],qk_length=1,shading = [],dem_extent = [],lat_lims = [],lon_lims = []):
     """
     Plots displacement as vectors in slantrange - azimuth plane and 
     assigns colour based on attribute value and limits
@@ -19,10 +19,12 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
         attr (str): _description_
         step (int): _description_
         scale (int): _description_
-        attr_lims (list, int): _description_
-        qk_length (float): _description_
+        attr_lims (list of floats, optional): _description_. Defaults to [0,1]
+        qk_length (float, optional): _description_. Defaults to 1
         shading (np.array, optional): _description_. Defaults to [] -> do not use.
         dem_extent (list, optional): _description_. Defaults to [] -> do not use.
+        lat_lims (list, optional): _description_. Defaults to [] -> do not use.
+        lon_lims (list, optional): _description_. Defaults to [] -> do not use.
     """
     # get length of 1 deg. for scalebar
     from .get_1deg_dist import get_1deg_dist
@@ -36,6 +38,12 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
         attr_copy[attr_copy<attr_lims[0]] = attr_lims[0]
         attr_copy[attr_copy>attr_lims[1]] = attr_lims[1]
 
+    if lat_lims == []:
+        lat_lims = [np.min(obj.Lat_off_vec),np.max(obj.Lat_off_vec)]
+    
+    if lon_lims == []:
+        lon_lims = [np.min(obj.Lon_off_vec),np.max(obj.Lon_off_vec)]
+
     # plotting
     fig1, axes = plt.subplots(1,1,figsize=(8,8))
     if (dem_extent != []):
@@ -46,7 +54,7 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
                     obj.X_off[::step,::step],obj.Y_off[::step,::step],
                     color='black',
                     scale=scale, 
-                    width = 0.01, 
+                    width = 0.005, 
                     edgecolor='black',
                     linewidth=0.2)
     else:
@@ -54,11 +62,11 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
                         obj.X_off[::step,::step],obj.Y_off[::step,::step],
                         attr_copy[::step,::step],
                         scale=scale, 
-                        width = 0.01, 
+                        width = 0.005, 
                         edgecolor='black',
                         linewidth=0.2)
-    axes.set_ylim([np.min(obj.Lat_off_vec),np.max(obj.Lat_off_vec)])
-    axes.set_xlim([np.min(obj.Lon_off_vec),np.max(obj.Lon_off_vec)])
+    axes.set_ylim(lat_lims)
+    axes.set_xlim(lon_lims)
     axes.add_artist(ScaleBar(distance_meters,location='lower right'))
     fig1.colorbar(q,ax=axes,extend='both')
     qk = axes.quiverkey(q,
