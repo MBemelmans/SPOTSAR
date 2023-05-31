@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.gridspec import GridSpec
 
+from cmcrameri import cm
+
 import pyproj
 from pyproj import CRS
 
@@ -27,33 +29,44 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims,qk_length,shading = [],dem_exten
     distance_meters = get_1deg_dist()
 
     # copy data to manipulate limits without messing with the original data
-    attr_copy = copy.deepcopy(getattr(obj,attr))
+    if attr != []:
+        attr_copy = copy.deepcopy(getattr(obj,attr))
 
-    # change limits for nicer plotting
-    attr_copy[attr_copy<attr_lims[0]] = attr_lims[0]
-    attr_copy[attr_copy>attr_lims[1]] = attr_lims[1]
+        # change limits for nicer plotting
+        attr_copy[attr_copy<attr_lims[0]] = attr_lims[0]
+        attr_copy[attr_copy>attr_lims[1]] = attr_lims[1]
 
     # plotting
     fig1, axes = plt.subplots(1,1,figsize=(8,8))
     if (dem_extent != []):
         axes.imshow(shading,cmap=cm.grayC,alpha=0.5, extent=dem_extent)
     
-    q = axes.quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
+    if attr == []:
+        q = axes.quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
                     obj.X_off[::step,::step],obj.Y_off[::step,::step],
-                    attr_copy[::step,::step],
+                    color='black',
                     scale=scale, 
                     width = 0.01, 
                     edgecolor='black',
                     linewidth=0.2)
+    else:
+        q = axes.quiver(obj.Lon_off[::step,::step],obj.Lat_off[::step,::step],
+                        obj.X_off[::step,::step],obj.Y_off[::step,::step],
+                        attr_copy[::step,::step],
+                        scale=scale, 
+                        width = 0.01, 
+                        edgecolor='black',
+                        linewidth=0.2)
     axes.set_ylim([np.min(obj.Lat_off_vec),np.max(obj.Lat_off_vec)])
     axes.set_xlim([np.min(obj.Lon_off_vec),np.max(obj.Lon_off_vec)])
     axes.add_artist(ScaleBar(distance_meters,location='lower right'))
     fig1.colorbar(q,ax=axes,extend='both')
     qk = axes.quiverkey(q,
                              0.5,
-                             0.9,
+                             0.95,
                              qk_length,
                              str(qk_length) +' m displacement in slant range–azimuth plane',
                              labelpos = 'E',
                              coordinates='figure')
-    axes.set_title(f'{attr}: min = {np.max([np.min(attr_copy),attr_lims[0]])} max = {np.min([np.max(attr_copy),attr_lims[1]])}')
+    if attr != []:
+        axes.set_title(f'{attr}: min = {np.nanmax([np.nanmin(attr_copy),attr_lims[0]])} max = {np.nanmin([np.nanmax(attr_copy),attr_lims[1]])}')
