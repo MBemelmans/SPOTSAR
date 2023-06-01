@@ -193,7 +193,7 @@ class MultiKernel:
 
         return self.Stack
     
-    def Run_MKA(self,indices=[],window_size=1,comp_lim=0.5):
+    def Run_MKA(self,indeces=[],window_size=1,comp_lim=0.5):
         """
         Run Multi-kernel averaging where user can define seleced indices from the stack, 
         desired window size, and a completion factor as a high pass filter
@@ -213,36 +213,51 @@ class MultiKernel:
         """
 
         if indeces==[]:
-            stack = self.Stack
+            stack_R = [obj.R_off for obj in self.Stack]
+            stack_A = [obj.A_off for obj in self.Stack]
+            stack_ccp = [obj.Ccp_off for obj in self.Stack]
+            stack_ccs = [obj.Ccs_off for obj in self.Stack]
         else:
-            stack = [self.Stack[i] for i in indices]
+            substack = [self.Stack[i] for i in indeces]
+            stack_R = [obj.R_off for obj in substack]
+            stack_A = [obj.A_off for obj in substack]
+            stack_ccp = [obj.Ccp_off for obj in substack]
+            stack_ccs = [obj.Ccs_off for obj in substack]
 
-        window_shape = (stack.shape[0], window_size, window_size)
-        # use view_as_windows to devided data into windows
-        win_data = np.lib.stride_tricks.sliding_window_view(stack, window_shape)[0]
-        # remove data that is nan for too many different window sizes
-        nan_frac = np.sum(np.isnan(win_data), axis=2) / window_size ** 2
-        nan_frac[nan_frac > comp_lim] = np.nan
-        nan_frac[nan_frac <= comp_lim] = 1
-        win_data = np.multiply(win_data, nan_frac[..., np.newaxis])
-        # define shape of multi-kernel averaged map (same as input data), filled with nan
-        self.Avg_map = np.full(stack.shape[1:], np.nan)
-        # per window, go take 95% confidence interval data and take average (mean)
-        for win_i in range(win_data.shape[0]):
-            if win_i % 50 == 0:
-                print('win_i', win_i)
-            for win_j in range(win_data.shape[1]):
-                # extract relevant window
-                win = win_data[win_i, win_j]
-                # calculate 95 % confidence interval
-                percentiles = np.nanpercentile(win, [2.5, 97.5])
-                # mask data outside 95% confidence interval with nan
-                mask = (win < percentiles[0]) | (win > percentiles[1])
-                win[mask] = np.nan
-                # calculate mean of window (offset by floor(window_size/2) because of border)
-                offset = window_size // 2
-                self.Avg_map[win_i + offset, win_j + offset] = np.nanmean(win)
+        avg_maps = []
+        for stack in [stack_R,stack_A,stack_ccp,stack_ccs]:
+            stack = stack[0]
+            window_shape = (stack.shape[0], window_size, window_size)
+            # use view_as_windows to devided data into windows
+            win_data = np.lib.stride_tricks.sliding_window_view(stack[0], window_shape)[0]
+            # remove data that is nan for too many different window sizes
+            nan_frac = np.sum(np.isnan(win_data), axis=2) / window_size ** 2
+            nan_frac[nan_frac > comp_lim] = np.nan
+            nan_frac[nan_frac <= comp_lim] = 1
+            win_data = np.multiply(win_data, nan_frac[..., np.newaxis])
+            # define shape of multi-kernel averaged map (same as input data), filled with nan
+            Avg_map = np.full(stack.shape[1:], np.nan)
+            # per window, go take 95% confidence interval data and take average (mean)
+            for win_i in range(win_data.shape[0]):
+                if win_i % 50 == 0:
+                    print('win_i', win_i)
+                for win_j in range(win_data.shape[1]):
+                    # extract relevant window
+                    win = win_data[win_i, win_j]
+                    # calculate 95 % confidence interval
+                    percentiles = np.nanpercentile(win, [2.5, 97.5])
+                    # mask data outside 95% confidence interval with nan
+                    mask = (win < percentiles[0]) | (win > percentiles[1])
+                    win[mask] = np.nan
+                    # calculate mean of window (offset by floor(window_size/2) because of border)
+                    offset = window_size // 2
+                    Avg_map[win_i + offset, win_j + offset] = np.nanmean(win)
+            avg_maps.append(Avg_map)
+        self.MKA_R_off = avg_maps[0]
+        self.MKA_A_off = avg_maps[1]
+        self.MKA_Ccp_off = avg_maps[2]
+        self.MKA_Ccs_off = avg_maps[3]
 
-        return self.Avg_map
+        return self.MKA_R_off, self.MKA_A_off, self.MKA_Ccp_off, self.MKA_Ccs_off
     
 
