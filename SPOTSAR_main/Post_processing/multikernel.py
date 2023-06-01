@@ -219,17 +219,17 @@ class MultiKernel:
             stack_ccs = [obj.Ccs_off for obj in self.Stack]
         else:
             substack = [self.Stack[i] for i in indeces]
-            stack_R = [obj.R_off for obj in substack]
-            stack_A = [obj.A_off for obj in substack]
-            stack_ccp = [obj.Ccp_off for obj in substack]
-            stack_ccs = [obj.Ccs_off for obj in substack]
+            stack_R = np.stack([obj.R_off for obj in substack],axis=0)
+            stack_A = np.stack([obj.A_off for obj in substack],axis=0)
+            stack_ccp = np.stack([obj.Ccp_off for obj in substack],axis=0)
+            stack_ccs = np.stack([obj.Ccs_off for obj in substack],axis=0)
 
         avg_maps = []
         for stack in [stack_R,stack_A,stack_ccp,stack_ccs]:
             stack = stack[0]
             window_shape = (stack.shape[0], window_size, window_size)
             # use view_as_windows to devided data into windows
-            win_data = np.lib.stride_tricks.sliding_window_view(stack[0], window_shape)[0]
+            win_data = np.lib.stride_tricks.sliding_window_view(stack, window_shape)[0]
             # remove data that is nan for too many different window sizes
             nan_frac = np.sum(np.isnan(win_data), axis=2) / window_size ** 2
             nan_frac[nan_frac > comp_lim] = np.nan

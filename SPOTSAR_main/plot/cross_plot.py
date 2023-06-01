@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 def cross_plot(obj,attr1,attr2,mode=0,bins=100,lognorm=0):
         """
             plots cross_plot as scatter (mode=0) or hist2d (mode=1)
