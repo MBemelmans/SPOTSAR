@@ -9,7 +9,7 @@ from cmcrameri import cm
 import pyproj
 from pyproj import CRS
 
-def plot_vec_attr(obj,attr,step,scale,attr_lims=[0,1],qk_length=1,shading = [],dem_extent = [],lat_lims = [],lon_lims = []):
+def plot_vec_attr(obj,attr,step,scale,width =0.005 ,attr_lims=[0,1],qk_length=1,shading = [],dem_extent = [],lat_lims = [],lon_lims = []):
     """
     Plots displacement as vectors in slantrange - azimuth plane and 
     assigns colour based on attribute value and limits
@@ -54,7 +54,7 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims=[0,1],qk_length=1,shading = [],d
                     obj.X_off[::step,::step],obj.Y_off[::step,::step],
                     color='black',
                     scale=scale, 
-                    width = 0.005, 
+                    width = width, 
                     edgecolor='black',
                     linewidth=0.2)
     else:
@@ -62,12 +62,12 @@ def plot_vec_attr(obj,attr,step,scale,attr_lims=[0,1],qk_length=1,shading = [],d
                         obj.X_off[::step,::step],obj.Y_off[::step,::step],
                         attr_copy[::step,::step],
                         scale=scale, 
-                        width = 0.005, 
+                        width = width, 
                         edgecolor='black',
                         linewidth=0.2)
     axes.set_ylim(lat_lims)
     axes.set_xlim(lon_lims)
-    axes.add_artist(ScaleBar(distance_meters,location='lower right'))
+    axes.add_artist(ScaleBar(distance_meters,location='lower right',font_properties={'size': 40}))
     fig1.colorbar(q,ax=axes,extend='both')
     qk = axes.quiverkey(q,
                              0.5,
