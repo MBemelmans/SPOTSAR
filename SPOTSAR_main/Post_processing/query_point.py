@@ -31,7 +31,7 @@ def query_point(lats,lons,attr,q_lats,q_lons,r):
     # then applies a buffer of desired radius in meters to that point 
     # and makes a n-gon polygonal apprixomation of a circle 
     n=128
-    lon_lat = np.stack(lons,lats)
+    lon_lat = np.stack((lons,lats))
     q_mean = q_median = q_std = q_95 = np.empty(np.shape(q_lats))
 
     for i, q_lon, q_lat in enumerate(np.zip(q_lons,q_lats)):
