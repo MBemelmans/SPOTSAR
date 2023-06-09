@@ -1,6 +1,20 @@
 import pandas as pd
 import numpy as np
+from inpoly import inpoly2
+from shapely.geometry import Polygon
+from shapely.geometry.point import Point
+import rasterio as rio
+from sklearn import linear_model
+
+import json
+from shapely.geometry import Point, LineString, mapping
+from functools import partial
+from shapely.ops import transform
+
+
 from .singlekernel import SingleKernel
+from .geodetic2enu import geodetic2enu
+from .query_point import query_point
 
 class MultiKernel:
 
@@ -244,7 +258,7 @@ class MultiKernel:
 
             # define shape of multi-kernel averaged map (same as input data), filled with nan
             Avg_map = np.full(stack.shape[1:], np.nan)
-            
+
             # per window, go take 95% confidence interval data and take average (mean)
             for win_i in range(win_data.shape[0]):
                 if win_i % 50 == 0:
@@ -269,3 +283,75 @@ class MultiKernel:
         return self.MKA_R_off, self.MKA_A_off
     
 
+    def query_point_stack(self,data_attr_name,q_lats,q_lons,r,indeces=[]):
+        """calculatess mean, median, standard deviation and 95% confidence interval 
+        for attribute data within r radius of query points
+
+        Args:
+            data_attr (_type_): attribute value of all points
+            q_lats (_type_): list of query point latitudes
+            q_lons (_type_): list of query point longitudes
+            r (_type_): search radius in meters
+            indeces (list, optional): list of stack indeces to process
+        """
+
+        ##
+        # function transforms query point (lon,lat)WGS84 into 
+        # local azimuthal projection (rect-linear with minimum local distortion)
+        # then applies a buffer of desired radius in meters to that point 
+        # and makes a n-gon polygonal apprixomation of a circle 
+
+        if indeces==[]:
+            substack = self.Stack
+        else:
+            substack = [self.Stack[i] for i in indeces]
+
+        # pre-define stat-list for appending
+        stats_list = []
+
+        # loop over window_sizes in subtrack
+        for obj in substack:
+            # get lat lon and attribute data
+            lons = getattr(obj,'Lon_off_vec')
+            lats = getattr(obj,'Lat_off_vec')
+            data_attr = getattr(obj,data_attr_name)
+
+            q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lons,
+                                                                            lats,
+                                                                            data_attr,
+                                                                            q_lons,
+                                                                            q_lats,
+                                                                            r)
+            stats_list.append([getattr(obj,'R_win'),getattr(obj,'A_win'),q_mean, q_median, q_std, q_95])
+        return stats_list, coordinate_circles
+
+    def query_point_MKA(self,data_attr_name,q_lats,q_lons,r):
+        """calculatess mean, median, standard deviation and 95% confidence interval 
+        for attribute data within r radius of query points
+
+        Args:
+            data_attr (_type_): attribute value of all points
+            q_lats (_type_): list of query point latitudes
+            q_lons (_type_): list of query point longitudes
+            r (_type_): search radius in meters
+            indeces (list, optional): list of stack indeces to process
+        """
+
+        ##
+        # function transforms query point (lon,lat)WGS84 into 
+        # local azimuthal projection (rect-linear with minimum local distortion)
+        # then applies a buffer of desired radius in meters to that point 
+        # and makes a n-gon polygonal apprixomation of a circle 
+
+        lons = self.Lon.flatten()
+        lats = self.Lat.flatten()
+        data_attr = getattr(self,data_attr_name).flatten()
+
+        q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lons,
+                                                                        lats,
+                                                                        data_attr,
+                                                                        q_lons,
+                                                                        q_lats,
+                                                                        r)
+
+        return [q_mean, q_median, q_std, q_95], coordinate_circles

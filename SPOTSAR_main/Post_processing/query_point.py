@@ -12,7 +12,7 @@ from shapely.ops import transform
 
 from .geodetic2enu import geodetic2enu
 
-def query_point(lats,lons,attr,q_lats,q_lons,r):
+def query_point(lats,lons,data_attr,q_lats,q_lons,r):
     """calculatess mean, median, standard deviation and 95% confidence interval 
     for attribute data within r radius of query points
 
@@ -31,10 +31,14 @@ def query_point(lats,lons,attr,q_lats,q_lons,r):
     # then applies a buffer of desired radius in meters to that point 
     # and makes a n-gon polygonal apprixomation of a circle 
     n=128
-    lon_lat = np.stack((lons,lats))
-    q_mean = q_median = q_std = q_95 = np.empty(np.shape(q_lats))
+    lon_lat = np.transpose(np.stack((lons,lats)))
+    q_mean = np.empty(np.shape(q_lats))
+    q_median = np.empty(np.shape(q_lats))
+    q_std = np.empty(np.shape(q_lats))
+    q_95 = np.empty((np.size(q_lats),2))
+    coordinate_circle_list = []
 
-    for i, q_lon, q_lat in enumerate(np.zip(q_lons,q_lats)):
+    for i, (q_lon, q_lat) in enumerate(zip(q_lons,q_lats)):
         point = Point(q_lon, q_lat)
         local_azimuthal_projection = f"+proj=aeqd +R=6371000 +units=m +lat_0={point.y} +lon_0={point.x}"
 
@@ -55,6 +59,7 @@ def query_point(lats,lons,attr,q_lats,q_lons,r):
         buffer = point_transformed.buffer(r,n)# n-gon approximation
         circle_poly = transform(aeqd_to_wgs84, buffer)
         coordinates_circle= np.asarray(circle_poly.exterior.coords)
+        coordinate_circle_list.append(coordinates_circle)
 
         # use inpoly2 for very fast in polygon check
         isin, ison = inpoly2(lon_lat,coordinates_circle)
@@ -62,13 +67,16 @@ def query_point(lats,lons,attr,q_lats,q_lons,r):
 
         # deramp data
         # val = a*lat + b*lon + mean
-        enu = geodetic2enu(lats[isin],lons[isin],np.zeros(np.shape(lats[isin])),q_lat,q_lon,0)
-        local_east = enu[0]
-        local_north = enu[1]
+        enu_vec = sm.Post_processing.geodetic2enu(lats[isin],lons[isin],np.zeros(np.shape(lats[isin])),q_lat,q_lon,0)
 
-        X_data = np.array([local_east, local_north]).reshape((-1, 2))
-        Y_data = attr[isin]
+        enu = np.reshape(enu_vec,[np.size(lats[isin]),3])
+        local_east = enu[:,0]
+        local_north = enu[:,1]
 
+        X_data = np.transpose(np.stack((local_east,local_north)))
+        Y_data = data_attr[isin]
+        X_data = X_data[np.where(~np.isnan(Y_data))]
+        Y_data = Y_data[np.where(~np.isnan(Y_data))]
         
 
         reg = linear_model.LinearRegression().fit(X_data, Y_data)
@@ -77,13 +85,13 @@ def query_point(lats,lons,attr,q_lats,q_lons,r):
 
         print("value of intercept, c:", reg.intercept_)
 
-        deramped_attr = attr[isin] - local_east * reg.coef_[0] - local_north * reg.coef_[1]
+        deramped_attr = data_attr[isin] - local_east * reg.coef_[0] - local_north * reg.coef_[1]
 
         # calculate statistics
         # mean
         q_mean[i] = np.nanmean(deramped_attr)
         q_median[i] = np.nanmedian(deramped_attr)
         q_std[i] = np.nanstd(deramped_attr)
-        q_95[i] = (np.nanpercentile(deramped_attr,2.5),np.nanpercentile(deramped_attr,97.5))
+        q_95[i,:] = [np.nanpercentile(deramped_attr,2.5),np.nanpercentile(deramped_attr,97.5)]
 
-    return q_mean, q_median, q_std, q_95
+    return q_mean, q_median, q_std, q_95, coordinate_circle_list
