@@ -211,7 +211,7 @@ class MultiKernel:
         Returns:
             avg_map: Multi-kernel Average map
         """
-
+        # get stack data
         if indeces==[]:
             stack_R = [obj.R_off for obj in self.Stack]
             stack_A = [obj.A_off for obj in self.Stack]
@@ -224,19 +224,27 @@ class MultiKernel:
             stack_ccp = np.stack([obj.Ccp_off for obj in substack],axis=0)
             stack_ccs = np.stack([obj.Ccs_off for obj in substack],axis=0)
 
+        # create list of maps to make 
         avg_maps = []
-        for stack in [stack_R,stack_A,stack_ccp,stack_ccs]:
-            stack = stack[0]
+
+        for stack in [stack_R,stack_A]:
+            # set window size according to stack dimensions
             window_shape = (stack.shape[0], window_size, window_size)
-            # use view_as_windows to devided data into windows
+
+            # use np.lib.stride_tricks.sliding_window_view to devided data into windows
+            # 1.2xfaster than sklearn view_as_windows
             win_data = np.lib.stride_tricks.sliding_window_view(stack, window_shape)[0]
+
             # remove data that is nan for too many different window sizes
-            nan_frac = np.sum(np.isnan(win_data), axis=2) / window_size ** 2
+            nan_frac = np.sum(np.isnan(win_data), axis=2) / (window_size ** 2)
+            nan_frac = nan_frac/np.shape(win_data)[2]
             nan_frac[nan_frac > comp_lim] = np.nan
             nan_frac[nan_frac <= comp_lim] = 1
             win_data = np.multiply(win_data, nan_frac[..., np.newaxis])
+
             # define shape of multi-kernel averaged map (same as input data), filled with nan
             Avg_map = np.full(stack.shape[1:], np.nan)
+            
             # per window, go take 95% confidence interval data and take average (mean)
             for win_i in range(win_data.shape[0]):
                 if win_i % 50 == 0:
@@ -255,9 +263,9 @@ class MultiKernel:
             avg_maps.append(Avg_map)
         self.MKA_R_off = avg_maps[0]
         self.MKA_A_off = avg_maps[1]
-        self.MKA_Ccp_off = avg_maps[2]
-        self.MKA_Ccs_off = avg_maps[3]
+        # stack_obj.MKA_Ccp_off = avg_maps[2]
+        # stack_obj.MKA_Ccs_off = avg_maps[3]
 
-        return self.MKA_R_off, self.MKA_A_off, self.MKA_Ccp_off, self.MKA_Ccs_off
+        return self.MKA_R_off, self.MKA_A_off
     
 
