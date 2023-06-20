@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors 
 import numpy as np
 
 def cross_plot(obj,attr1,attr2,mode=0,bins=100,lognorm=0):
@@ -8,8 +9,10 @@ def cross_plot(obj,attr1,attr2,mode=0,bins=100,lognorm=0):
         """
         x_data = getattr(obj,attr1).ravel()
         y_data = getattr(obj,attr2).ravel()
-        x_data = x_data[~np.isnan(x_data)]
-        y_data = y_data[~np.isnan(y_data)]
+        mask = [(~np.isnan(x_data)) & (~np.isnan(y_data))][0]
+
+        x_data = x_data[mask]
+        y_data = y_data[mask]
         if mode == 0:
             fig1, ax0 = plt.subplots(figsize=(12,12))
             ax0.scatter(x_data,y_data,5)
