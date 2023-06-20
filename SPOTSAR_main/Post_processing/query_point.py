@@ -6,6 +6,7 @@ import rasterio as rio
 from sklearn import linear_model
 
 import json
+import pyproj
 from shapely.geometry import Point, LineString, mapping
 from functools import partial
 from shapely.ops import transform
@@ -67,7 +68,7 @@ def query_point(lats,lons,data_attr,q_lats,q_lons,r):
 
         # deramp data
         # val = a*lat + b*lon + mean
-        enu_vec = sm.Post_processing.geodetic2enu(lats[isin],lons[isin],np.zeros(np.shape(lats[isin])),q_lat,q_lon,0)
+        enu_vec = geodetic2enu(lats[isin],lons[isin],np.zeros(np.shape(lats[isin])),q_lat,q_lon,0)
 
         enu = np.reshape(enu_vec,[np.size(lats[isin]),3])
         local_east = enu[:,0]

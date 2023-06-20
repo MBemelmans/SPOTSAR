@@ -208,23 +208,23 @@ class MultiKernel:
         return self.Stack
     
     def Run_MKA(self,indeces=[],window_size=1,comp_lim=0.5):
-        """
-        Run Multi-kernel averaging where user can define seleced indices from the stack, 
-        desired window size, and a completion factor as a high pass filter
+        # """
+        # Run Multi-kernel averaging where user can define seleced indices from the stack, 
+        # desired window size, and a completion factor as a high pass filter
 
-        Args:
-            indices (list, optional): indices of slices from datastack used for MKA. Defaults to [], use all data.
-            window_size (int, optional): window dimension for MKA, odd numbers 
-                                         prefered because of pixel centering. 
-                                         Defaults to 1.
-            comp_lim (float, optional): completion limit between [0.0, 1.0]
-                                        Only take data for MKA if more than 
-                                        comp_lim of the stack is not nan. 
-                                        Defaults to 0.5.
+        # Args:
+        #     indices (list, optional): indices of slices from datastack used for MKA. Defaults to [], use all data.
+        #     window_size (int, optional): window dimension for MKA, odd numbers 
+        #                                  prefered because of pixel centering. 
+        #                                  Defaults to 1.
+        #     comp_lim (float, optional): completion limit between [0.0, 1.0]
+        #                                 Only take data for MKA if more than 
+        #                                 comp_lim of the stack is not nan. 
+        #                                 Defaults to 0.5.
 
-        Returns:
-            avg_map: Multi-kernel Average map
-        """
+        # Returns:
+        #     avg_map: Multi-kernel Average map
+        # """
         # get stack data
         if indeces==[]:
             stack_R = [obj.R_off for obj in self.Stack]
@@ -244,7 +244,7 @@ class MultiKernel:
         for stack in [stack_R,stack_A]:
             # set window size according to stack dimensions
             window_shape = (stack.shape[0], window_size, window_size)
-
+            print(np.shape(window_shape))
             # use np.lib.stride_tricks.sliding_window_view to devided data into windows
             # 1.2xfaster than sklearn view_as_windows
             win_data = np.lib.stride_tricks.sliding_window_view(stack, window_shape)[0]
@@ -316,11 +316,11 @@ class MultiKernel:
             lats = getattr(obj,'Lat_off_vec')
             data_attr = getattr(obj,data_attr_name)
 
-            q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lons,
-                                                                            lats,
+            q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lats,
+                                                                            lons,
                                                                             data_attr,
-                                                                            q_lons,
                                                                             q_lats,
+                                                                            q_lons,
                                                                             r)
             stats_list.append([getattr(obj,'R_win'),getattr(obj,'A_win'),q_mean, q_median, q_std, q_95])
         return stats_list, coordinate_circles
@@ -347,8 +347,8 @@ class MultiKernel:
         lats = self.Lat.flatten()
         data_attr = getattr(self,data_attr_name).flatten()
 
-        q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lons,
-                                                                        lats,
+        q_mean, q_median, q_std, q_95, coordinate_circles = query_point(lats,
+                                                                        lons,
                                                                         data_attr,
                                                                         q_lons,
                                                                         q_lats,
