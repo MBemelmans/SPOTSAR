@@ -9,17 +9,12 @@ import fastparquet # fast read/write for large data structures
 import sklearn.preprocessing as pre # for data normalisation
 from sklearn.metrics import pairwise_distances
 
-import geopandas as gpd
-import rasterio as rio
-import rasterio.mask
 from rasterio.plot import plotting_extent
 from shapely.geometry import Polygon
 from shapely.geometry.point import Point
-import datetime
-import pyproj
 from pyproj import CRS
 from inpoly import inpoly2 # for fast inpolygon checks
-import utm
+
 
 
 import matplotlib.pyplot as plt 
@@ -52,11 +47,7 @@ import rasterio as rio
 import rasterio.mask
 from rasterio.plot import plotting_extent
 from inpoly import inpoly2 # for fast inpolygon checks
-import glob # for file search
-import copy
-import os # operating system stuff
-import re # regex
-import fastparquet # fast read/write for large data structures
+
 
 
 import sklearn.preprocessing as pre # for data normalisation

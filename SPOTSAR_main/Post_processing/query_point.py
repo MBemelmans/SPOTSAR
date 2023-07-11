@@ -13,7 +13,7 @@ from shapely.ops import transform
 
 from .geodetic2enu import geodetic2enu
 
-def query_point(lats,lons,data_attr,q_lats,q_lons,r):
+def query_point(lats,lons,data_attr,q_lats,q_lons,r,verbose=False):
     """calculatess mean, median, standard deviation and 95% confidence interval 
     for attribute data within r radius of query points
 
@@ -81,10 +81,9 @@ def query_point(lats,lons,data_attr,q_lats,q_lons,r):
         
 
         reg = linear_model.LinearRegression().fit(X_data, Y_data)
-
-        print("coefficients of equation of plane, (a1, a2): ", reg.coef_)
-
-        print("value of intercept, c:", reg.intercept_)
+        if verbose:
+            print("coefficients of equation of plane, (a1, a2): ", reg.coef_)
+            print("value of intercept, c:", reg.intercept_)
 
         deramped_attr = data_attr[isin] - local_east * reg.coef_[0] - local_north * reg.coef_[1]
 

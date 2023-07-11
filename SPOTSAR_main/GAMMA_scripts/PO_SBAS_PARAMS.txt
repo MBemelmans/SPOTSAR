@@ -1,0 +1,64 @@
+# parameter file for sub-pixel offset tracking small-baseline sub-set 
+# using multiple window sizes that sequentially inform the smaller window size
+# after Chea et al., 2018 and Casu et al., 2014
+
+data_dir        ./
+sat_tag         CSK
+COMMON_ref      c20201116
+
+dem_file        /local-scratch/tz20896/Merapi2021/geo/
+dem_par         /local-scratch/tz20896/Merapi2021/geo/
+demlat          1
+demlon          1
+gc_lat          0.125
+gc_lon          0.125
+
+RLKS            1
+ALKS            1
+
+cropping_flag   1
+rstart          1324
+rstop           12561
+astart          2235
+astop           11354
+
+step_win_flag   1
+rwin            16
+azwin           16
+rstep           8
+azstep          8
+
+map_rlks        24
+map_alks        12
+rngwin_PO_init  512
+aziwin_PO_init  512
+
+rngwin1_PO      
+aziwin1_PO      116
+
+rngwin2_PO      256
+aziwin2_PO      124
+
+rngwin3_PO      272
+aziwin3_PO      132
+
+rngwin4_PO      306
+aziwin4_PO      148
+
+rngwin5_PO      340
+aziwin5_PO      164
+      
+     
+     
+     
+     
+
+ccpthresh       0.15
+bwfrac          1  
+SLC_ovr         2
+final_ccpthresh 0.15
+
+ref_ORBIT001    c20200910
+int_ORBIT002    c20200919
+
+
