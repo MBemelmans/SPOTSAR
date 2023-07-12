@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import lstsq
+from skimage.util import view_as_windows
 
 
 def remove_outliers(arr, confidence=95):
@@ -9,7 +10,7 @@ def remove_outliers(arr, confidence=95):
 
     lower_percentile = np.nanpercentile(arr, lower_bound, axis=(2, 3), keepdims=True)
     upper_percentile = np.nanpercentile(arr, upper_bound, axis=(2, 3), keepdims=True)
-    arr_no_outliers = np.empty_like(arr)
+    arr_no_outliers = arr
     arr_no_outliers[arr < lower_percentile] = np.nan
     arr_no_outliers[arr > upper_percentile] = np.nan
     print("outliers removed")
@@ -19,6 +20,7 @@ def remove_outliers(arr, confidence=95):
 
 def remove_plane(arr, x_coords, y_coords, deplane=False):
     print("remove plane")
+
     # reshape data so that they are Nxwin*win
     d_shape = np.shape(arr)
     x_flat = x_coords.reshape((d_shape[0] * d_shape[1], d_shape[2] * d_shape[3]))
@@ -77,25 +79,30 @@ def sliding_window_std(data):
     y_coords = data[2]
     window_shape = (data[3], data[3])
     deplane = data[4]
-    windows = np.lib.stride_tricks.sliding_window_view(arr, window_shape)
-    x_windows = np.lib.stride_tricks.sliding_window_view(x_coords, window_shape)
-    y_windows = np.lib.stride_tricks.sliding_window_view(y_coords, window_shape)
+    windows = view_as_windows(arr, window_shape)
+    x_windows = view_as_windows(x_coords, window_shape)
+    y_windows = view_as_windows(y_coords, window_shape)
+
+    # windows = np.lib.stride_tricks.sliding_window_view(arr, window_shape)
+    # x_windows = np.lib.stride_tricks.sliding_window_view(x_coords, window_shape)
+    # y_windows = np.lib.stride_tricks.sliding_window_view(y_coords, window_shape)
 
     windows_no_outliers = remove_outliers(windows)
-    std_no_plane = np.empty_like(np.shape(windows)[0:2])
+    std_no_plane = np.empty(np.shape(windows)[0:2])
     if deplane:
         arr_no_plane = remove_plane(windows_no_outliers, x_windows, y_windows)
-        print('calc std')
+        print("calc std")
         std_no_plane = np.nanstd(arr_no_plane, axis=(2, 3))
-        print('std calculated')
+        print("std calculated")
     else:
-        print('calc std')
-        for i in range(np.shape(windows)[0]):
-            if np.mod(i,1000) == 0:
-                print(i)
-            for j in range(np.shape(windows)[1]):
-                win = windows_no_outliers[i,j,:,:]
-                std_no_plane[i,j] = np.nanstd(win)
-        print('std calculated')
+        print("calc std")
+        # for i in range(np.shape(windows)[0]):
+        #     if np.mod(i, 100) == 0:
+        #         print(i)
+        #     for j in range(np.shape(windows)[1]):
+        #         win = windows_no_outliers[i, j, :, :]
+        #         std_no_plane[i, j] = np.nanstd(win)
+        std_no_plane = np.nanstd(windows_no_outliers, axis=(2, 3))
+        print("std calculated")
 
     return std_no_plane
