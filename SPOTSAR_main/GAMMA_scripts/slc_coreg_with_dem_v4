@@ -126,8 +126,8 @@ do
   exec_cmd offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 show
 #   (($off_win/=2))
 #   (($n_win*=2))
-  $off_win=$(($off_win / 2))
-  $n_win=$(($n_win * 2))
+  $off_win=$((off_win / 2))
+  $n_win=$((n_win * 2))
 done
 # # offset_pwrm <MLI-1>   <MLI-2>          <DIFF_par>     <offs> <ccp> [rwin] [azwin] [offsets] [n_ovr] [nr] [naz] [thres] [lanczos] [bw_frac] [pflag] [plt_flag] [ccs] [std_mean]
 # # offset_pwrm 25394.mli LasVegas.sim_sar 25394.diff_par offs   ccp   512    512     offsets   1       8    8     0.15
@@ -196,8 +196,8 @@ do
   exec_cmd offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 show
 #   (($off_win/=2))
 #   (($n_win*=2))
-  $off_win=$(($off_win / 2))
-  $n_win=$(($n_win * 2))
+  $off_win=$((off_win / 2))
+  $n_win=$((n_win * 2))
 done
 
 # # offset_pwrm mli0 05721.mli diff0 offs0 ccp0 256 256 offsets 2 16 16

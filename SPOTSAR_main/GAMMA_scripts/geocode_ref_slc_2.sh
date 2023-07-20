@@ -59,6 +59,24 @@
       echo " "
   fi
 
+  if [ -f ${COMMON_ref}.rmli]; then
+    rm -rf ${COMMON_ref}.rmli
+  fi
+  echo " "
+  if [ ! -f ${COMMON_ref}.rmli ]; then
+      ln -s ./RSLC2/${COMMON_ref}.rmli . #BME - Why is there no target specified (like ".")"?
+      echo " "
+  fi
+
+  if [ -f ${COMMON_ref}.rslc]; then
+    rm -rf ${COMMON_ref}.rslc
+  fi
+  echo " "
+  if [ ! -f ${COMMON_ref}.rslc ]; then
+      ln -s ./RSLC2/${COMMON_ref}.rslc . #BME - Why is there no target specified (like ".")"?
+      echo " "
+  fi
+
   ###   Transformation of DEM to SAR coordinates:  $HGT_SIM:
   DATE0=`echo ${COMMON_ref} | tr -cd '[[:digit:]]'`
 
@@ -85,20 +103,20 @@
   while [ $off_win -ge 8 ]
   do
     echo "$script_name off_win: $off_win n_win: $n_win"
-    exec_cmd offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp $off_win $off_win offsets 1 $n_win $n_win 0.2 7 - - - - show
-    exec_cmd offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 show
+    exec_cmd offset_pwrm  ${COMMON_ref}.rmli sim_sar.rdc ${COMMON_ref}.diff_par offs ccp $off_win $off_win offsets 1 $n_win $n_win 0.2 7 - - - - show
+    exec_cmd offset_fitm offs ccp ${COMMON_ref}.diff_par coffs coffsets 0.2 4 show
     # (($off_win/=2))
     # (($n_win*=2))
-    $off_win=$(($off_win / 2))
-    $n_win=$(($n_win * 2))
+    $off_win=$((off_win / 2))
+    $n_win=$((n_win * 2))
     # x=$(($x + 1))
   done
 
-  echo "$script_name refine rough sim_sar-ref.mli look-up table using offset polynoimals stored in $ref_file.diff_par"
-  exec_cmd gc_map_fine $ref_file.rough.map_to_rdc $map_width ${ref_file}.diff_par $ref_file.map_to_rdc 0 show
+  echo "$script_name refine rough sim_sar-ref.mli look-up table using offset polynoimals stored in ${COMMON_ref}.diff_par"
+  exec_cmd gc_map_fine ${COMMON_ref}.rough.map_to_rdc $map_width ${COMMON_ref}.diff_par ${COMMON_ref}.map_to_rdc 0 show
   
   echo "$script_name create dem in radar coordinates of ref.mli using refined sim_sar-ref.mli look-up table"
-  exec_cmd geocode $ref_file.map_to_rdc $ref_file.dem_seg $map_width $ref_file.dem.rdc $width $lines 0 0 show
+  exec_cmd geocode ${COMMON_ref}.map_to_rdc ${COMMON_ref}.dem_seg $map_width ${COMMON_ref}.dem.rdc $width $lines 0 0 show
 
   echo "$script_name step 3b: create .lat and .lon files for pixel offset"
   #echo "dem_coord ${COMMON_ref}.dem_seg.par ${DATE0}.real.lon ${DATE0}.real.lat | tee -a $LOG"
