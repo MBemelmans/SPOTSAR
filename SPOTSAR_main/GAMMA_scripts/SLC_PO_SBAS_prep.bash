@@ -148,7 +148,7 @@ fi
 
 ## make symlink to reference RSLC ##
 echo " "
-  ln -s ./RSLC/$COMMON_ref.rslc ./$COMMON_ref.rslc | tee -a $LOG
+  ln -s ./RSLC2/$COMMON_ref.rslc ./$COMMON_ref.rslc | tee -a $LOG
 echo " "
 
 ## perform cropping on reference SLC ##

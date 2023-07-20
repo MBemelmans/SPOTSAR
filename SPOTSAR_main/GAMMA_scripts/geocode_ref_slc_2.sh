@@ -19,7 +19,7 @@
   #echo "multi_look $COMMON_ref.slc $COMMON_ref.slc.par ${COMMON_ref}_${map_rlks}_${map_alks}.mli ${COMMON_ref}_${map_rlks}_${map_alks}.mli.par $RLKS $ALKS"
   exec_cmd multi_look $COMMON_ref.slc $COMMON_ref.slc.par ${COMMON_ref}_${map_rlks}_${map_alks}.mli ${COMMON_ref}_${map_rlks}_${map_alks}.mli.par $RLKS $ALKS show
   ls -l
-  cd ../RSLC
+  cd ../RSLC2
   if [ ! -f $COMMON_ref.rslc.par ]; then
       ln -s ../$COMMON_ref/$COMMON_ref.slc.par ./$COMMON_ref.rslc.par
       echo " "
@@ -46,7 +46,7 @@
   fi
   echo " "
   if [ ! -f $COMMON_ref.rslc.par ]; then
-      ln -s ./RSLC/$COMMON_ref.rslc.par .
+      ln -s ./RSLC2/$COMMON_ref.rslc.par .
       echo " "
   fi
 
@@ -55,7 +55,7 @@
   fi
   echo " "
   if [ ! -f ${COMMON_ref}.rmli.par ]; then
-      ln -s ./RSLC/${COMMON_ref}.rmli.par . #BME - Why is there no target specified (like ".")"?
+      ln -s ./RSLC2/${COMMON_ref}.rmli.par . #BME - Why is there no target specified (like ".")"?
       echo " "
   fi
 
@@ -71,12 +71,12 @@
   echo "map segment width: $map_width       SAR data width, lines: $width $lines"
   echo ""
   echo "Transformation of DEM into SAR coordinates:  ${COMMON_ref}.dem.rdc"
-  exec_cmd geocode $ref_file.rough.map_to_rdc sim_sar $map_width sim_sar.rdc $width $lines 0 0 show
+  exec_cmd geocode ${COMMON_ref}.rough.map_to_rdc sim_sar $map_width sim_sar.rdc $width $lines 0 0 show
 
   ## refine look up table
   echo "$script_name determine offset polynomials between simulated intensity and ref.mli"
-  exec_cmd create_diff_par ${ref_file}.rmli.par - ${ref_file}.diff_par 1 0 show
-  exec_cmd init_offsetm ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par show
+  exec_cmd create_diff_par ${COMMON_ref}.rmli.par - ${COMMON_ref}.diff_par 1 0 show
+  exec_cmd init_offsetm ${COMMON_ref}.rmli sim_sar.rdc ${COMMON_ref}.diff_par show
   ## perfrom coregistration using increasingly smaller windows and increasingly more windows
 
   off_win=512
@@ -84,11 +84,14 @@
    
   while [ $off_win -ge 8 ]
   do
-    echo "$script_name off_win: $offwin n_win: $n_win"
+    echo "$script_name off_win: $off_win n_win: $n_win"
     exec_cmd offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp $off_win $off_win offsets 1 $n_win $n_win 0.2 7 - - - - show
     exec_cmd offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 show
-    (($off_win/=2))
-    (($n_win*=2))
+    # (($off_win/=2))
+    # (($n_win*=2))
+    $off_win=$(($off_win / 2))
+    $n_win=$(($n_win * 2))
+    # x=$(($x + 1))
   done
 
   echo "$script_name refine rough sim_sar-ref.mli look-up table using offset polynoimals stored in $ref_file.diff_par"
@@ -108,14 +111,14 @@
   rm -rf ${DATE0}.real.*
 
 
-  if [ -d "./geo" ]; then
-    rm -rf ./geo
+  if [ -d "./geo2" ]; then
+    rm -rf ./geo2
   fi
 
-  if [ ! -d "./geo" ]; then
-    mkdir ./geo
+  if [ ! -d "./geo2" ]; then
+    mkdir ./geo2
   fi
 
-  mv $DATE0.dem.rdc ./geo/
-  mv $DATE0.lon ./geo/
-  mv $DATE0.lat ./geo/
+  mv $DATE0.dem.rdc ./geo2/
+  mv $DATE0.lon ./geo2/
+  mv $DATE0.lat ./geo2/

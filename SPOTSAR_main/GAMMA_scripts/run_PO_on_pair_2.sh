@@ -7,11 +7,11 @@
 
   ## only create RSLC if they don't excist already ##
   echo "$script_name generate pair $ORBIT_ref $ORBIT_sec"
-  if [ ! -f "./RSLC/${ORBIT_ref}.rslc" ]; then
+  if [ ! -f "./RSLC2/${ORBIT_ref}.rslc" ]; then
     exec_cmd slc_coreg_with_dem_v4 $COMMON_ref $ORBIT_ref $DEM $DEM_PAR $demlat $demlon $RLKS $ALKS show
   fi
 
-  if [ ! -f "./RSLC/${ORBIT_sec}.rslc" ]; then
+  if [ ! -f "./RSLC2/${ORBIT_sec}.rslc" ]; then
     exec_cmd slc_coreg_with_dem_v4 $COMMON_ref $ORBIT_sec $DEM $DEM_PAR $demlat $demlon $RLKS $ALKS show
   fi
 
@@ -29,17 +29,17 @@
   cd $PAIRNAME
 
   ## MAKE SYMLINKS TO REQUIRED FILES ##
-  ln -s ../../RSLC/$ORBIT_ref.rslc ./$ORBIT_ref.rslc 
-  ln -s ../../RSLC/$ORBIT_ref.rslc.par ./$ORBIT_ref.rslc.par 
-  ln -s ../../RSLC/$ORBIT_sec.rslc ./$ORBIT_sec.rslc 
-  ln -s ../../RSLC/$ORBIT_sec.rslc.par ./$ORBIT_sec.rslc.par 
-  ln -s ../../RSLC/$COMMON_ref.rslc ./$COMMON_ref.rslc 
-  ln -s ../../RSLC/$COMMON_ref.rslc.par ./$COMMON_ref.rslc.par 
-  ln -s ../../PO_geocoding/${COMMON_ref}_${map_rlks}_${map_alks}.rmli ./${COMMON_ref}_${map_rlks}_${map_alks}.rmli 
-  ln -s ../../PO_geocoding/${COMMON_ref}_${map_rlks}_${map_alks}.rmli.par ./${COMMON_ref}_${map_rlks}_${map_alks}.rmli.par 
-  ln -s ../../PO_geocoding/${COMMON_ref}_${map_rlks}_${map_alks}.map_to_rdc ./${COMMON_ref}_${map_rlks}_${map_alks}.map_to_rdc 
-  ln -s ../../PO_geocoding/${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg ./${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg 
-  ln -s ../../PO_geocoding/${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg.par ./${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg.par 
+  ln -s ../../RSLC2/$ORBIT_ref.rslc ./$ORBIT_ref.rslc 
+  ln -s ../../RSLC2/$ORBIT_ref.rslc.par ./$ORBIT_ref.rslc.par 
+  ln -s ../../RSLC2/$ORBIT_sec.rslc ./$ORBIT_sec.rslc 
+  ln -s ../../RSLC2/$ORBIT_sec.rslc.par ./$ORBIT_sec.rslc.par 
+  ln -s ../../RSLC2/$COMMON_ref.rslc ./$COMMON_ref.rslc 
+  ln -s ../../RSLC2/$COMMON_ref.rslc.par ./$COMMON_ref.rslc.par 
+  ln -s ../../PO_geocoding2/${COMMON_ref}_${map_rlks}_${map_alks}.rmli ./${COMMON_ref}_${map_rlks}_${map_alks}.rmli 
+  ln -s ../../PO_geocoding2/${COMMON_ref}_${map_rlks}_${map_alks}.rmli.par ./${COMMON_ref}_${map_rlks}_${map_alks}.rmli.par 
+  ln -s ../../PO_geocoding2/${COMMON_ref}_${map_rlks}_${map_alks}.map_to_rdc ./${COMMON_ref}_${map_rlks}_${map_alks}.map_to_rdc 
+  ln -s ../../PO_geocoding2/${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg ./${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg 
+  ln -s ../../PO_geocoding2/${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg.par ./${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg.par 
 
   ## perform Pixel Offset Tracking wiht cropping ##
   if [ $cropping_flag == 1 ]; then

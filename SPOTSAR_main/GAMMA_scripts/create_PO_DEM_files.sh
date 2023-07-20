@@ -110,7 +110,7 @@ fi
 exec_cmd geocode ${COMMON_ref}_${map_rlks}_${map_alks}.map_to_rdc ${COMMON_ref}_${map_rlks}_${map_alks}.dem_seg $map_width ${COMMON_ref}_${map_rlks}_${map_alks}.dem.rdc $width 0 0 0 show
 
 if [ -d PO_geocoding ]; then
-    rm -rf PO_geocoding
+    rm -rf PO_geocoding2
 fi
-mkdir PO_geocoding
-mv ${COMMON_ref}_${map_rlks}_${map_alks}.* ./PO_geocoding/
+mkdir PO_geocoding2
+mv ${COMMON_ref}_${map_rlks}_${map_alks}.*/
