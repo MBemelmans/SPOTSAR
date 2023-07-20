@@ -194,7 +194,7 @@ do
     fi
   
     if [ $sat_tag == "TSX" ]; then
-      exec_cmd CSK_MAKE_TSX $DATA_dir $COMMON_ref 1 $RLKS $ALKS show
+      exec_cmd TSX_MAKE_SLC $DATA_dir $COMMON_ref 1 $RLKS $ALKS show
     fi
   fi
   if [ ! -d "./$ORBIT_sec" ]; then
@@ -204,7 +204,7 @@ do
     fi
   
     if [ $sat_tag == "TSX" ]; then
-      exec_cmd CSK_MAKE_TSX $DATA_dir $COMMON_sec 1 $RLKS $ALKS show
+      exec_cmd TSX_MAKE_SLC $DATA_dir $COMMON_sec 1 $RLKS $ALKS show
     fi
   fi
 
