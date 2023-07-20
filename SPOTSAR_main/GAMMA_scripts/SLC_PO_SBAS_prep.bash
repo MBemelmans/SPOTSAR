@@ -1,6 +1,15 @@
 !/bin/bash
 
-# Defining functions used throughout this script
+###############################################################################
+######### Bulk-processing of multi-kernel Sub-Pixel Offset Tracking ###########
+###############################################################################
+## this script takes an input text file with the parameters and pair names   ##
+## for pixel offset trackign using multiple window sizes (kernels)           ##
+## Created: Mark Bemelmans 11/08/2022, Bristol                               ##
+## After gamma_mli_coreg_with_dem                                            ##
+###############################################################################
+
+##### input check functions #####
 check_pos_int () {
     if [[ ! "$1" =~ ^[1-9][0-9]*$ ]];
     then
@@ -33,6 +42,15 @@ check_int () {
     fi
 }
 
+#### execute command function #####
+## This function is pre-pended   ##
+## any GAMMA function and will   ##
+## run the command + log the     ##
+## output in the $LOG file       ##
+## if 'show' is part of the      ##
+## command, the output will also ##
+## be shown on screen            ##
+###################################
 function exec_cmd() {
     showintty=false
     numargs=$#
@@ -49,7 +67,6 @@ function exec_cmd() {
     done
     echo "Executing the command: ${prog_str}, $showintty"
     if $showintty; then
-        # `${prog_str}` | tee -a $LOG
         eval $prog_str | tee -a $LOG
     else
         eval $prog_str >> $LOG
@@ -57,6 +74,7 @@ function exec_cmd() {
     echo " "
 }
 
+## DOC string ##
 if [ "$#" == "0" ]; then
   echo " "
   echo " usage: SLC_PO_SBAS_prep.bash PROC_FILE START_PAIR END_PAIR"
@@ -69,14 +87,14 @@ if [ "$#" == "0" ]; then
   exit
 fi
 
-# input control
+## input control ##
 if [ $# != 3 ]; then
   echo "Not right number of input arguments. Should be 3."
   echo "Type 'SLC_PO_SBAS_prep.bash' for help."
   exit -1
 fi
 
-# check input
+## check par file ##
 paramfile=$1
 if [ -f $paramfile ]; then
         echo "Using parameter file $paramfile"
@@ -85,30 +103,33 @@ else
         exit -1
 fi
 
-# parse start and end pair
+## parse start and end pair ##
 START_PAIR=$2
 END_PAIR=$3
 
-# read in parameters
+## read in parameters ##
 source read_PO_params.sh
 
-# set script name for logging
+## set script name for logging ##
 script_name='(SLC_PO_SBAS_prep)'
 
-
+## calculate pixel offset step size scaled by multi-looking factors, if desired ##
 if [ $step_win_flag == 0 ]; then
   let map_rlks=rstep*RLKS
   let map_alks=azstep*ALKS
 fi
 
-
-#set log
+## set log ##
 LOG=SLC_PO_SBAS_prep.log
 rm -f $LOG
 date | tee $LOG
 
 
-# user input to ask for pre-processing
+## user input to ask for pre-processing ##
+## Pre-processing involves creating the ##
+## common reference RSLC and the .lat   ##
+## and .lon files whic are then stored  ##
+## in ./geo.                            ##
 echo "Do you wish to do pre-processing? (y/n): "
 read ANSWER
 
@@ -116,35 +137,33 @@ if [ $ANSWER == "y" ]; then
   source geocode_ref_slc.sh
 fi 
 
-# reset script name
+## reset script name ##
 script_name='(SLC_PO_SBAS_prep)'
 
-# collect number of lines and samples from cropping values
+## collect number of lines and samples from cropping values ##
 if [ $cropping_flag == 1 ]; then
   let n_samples_crop=rstop-rstart+1
   let n_lines_crop=astop-astart+1
 fi
 
-# make symlink to reference RSLC
+## make symlink to reference RSLC ##
 echo " "
   ln -s ./RSLC/$COMMON_ref.rslc ./$COMMON_ref.rslc | tee -a $LOG
 echo " "
 
-# perform cropping on reference SLC
+## perform cropping on reference SLC ##
 if [ $cropping_flag == 1 ]; then
   # crop .rslcs with SLC_copy to extract smaller area around the volcano
-  echo "SLC_copy"
-  # SLC_copy <SLC_in> <SLC_par_in> <SLC_out> <SLC_par_out> [fcase] [sc] [roff] [nr] [loff] [nl] [swap_IQ] [header_lines]
   exec_cmd SLC_copy $COMMON_ref.rslc $COMMON_ref.rslc.par $COMMON_ref.crop.rslc $COMMON_ref.crop.rslc.par 4 - $rstart $n_samples_crop $astart $n_lines_crop - - show
 fi
 
-# create .lon and .lat files
-create_latlon_files $cropping_flag $COMMON_ref $DEM $DEM_PAR $map_rlks $map_alks $demlat $demlon
+## create DEM files that fit step-size of Pixel offset tracking ##
+exec_cmd create_PO_DEM_files $cropping_flag $COMMON_ref $DEM $DEM_PAR $map_rlks $map_alks $demlat $demlon show
 
-# reset script name
+## reset script name ##
 script_name='(SLC_PO_SBAS_prep)'
 
-# for all pairs repeat steps 5-x
+## for all pairs repeat steps 5-x ##
 x=$START_PAIR
 
 while [ $x -le $END_PAIR ];
@@ -193,3 +212,9 @@ do
   source run_PO_on_pair.sh
 
   echo "completed pair $x, on to the next one!"
+  cd ../..
+  # pwd
+  x=$(($x + 1))
+done
+
+echo "PO_SBAS prep completed!

@@ -1,0 +1,26 @@
+name: SPOTSAR
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - joblib
+  - cmcrameri
+  - utm
+  - geopandas
+  - regex
+  - numpy
+  - pandas
+  - pyproj
+  - scipy
+  - seaborn
+  - glob2
+  - inpoly
+  - rasterio
+  - fastparquet
+  - shapely
+  # - mintpy
+  # - configparser
+  - hdbscan
+  - matplotlib-scalebar
+

@@ -90,7 +90,7 @@ def sliding_window_std(data):
     windows_no_outliers = remove_outliers(windows)
     std_no_plane = np.empty(np.shape(windows)[0:2])
     if deplane:
-        arr_no_plane = remove_plane(windows_no_outliers, x_windows, y_windows)
+        arr_no_plane = remove_plane(windows_no_outliers, x_windows, y_windows,deplane)
         print("calc std")
         std_no_plane = np.nanstd(arr_no_plane, axis=(2, 3))
         print("std calculated")

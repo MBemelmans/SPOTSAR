@@ -2,8 +2,8 @@
 
 if [ "$#" == "0" ]; then
   echo " "
-  echo " usage: create_latlon_files cropping_flag COMMON_ref DEM DEM_PAR map_rlks map_alks demlat demlon"
-  echo " Processes reference SLC data and DEM to make .lo and .lat files "
+  echo " usage: create_PO_DEM_files cropping_flag COMMON_ref DEM DEM_PAR map_rlks map_alks demlat demlon"
+  echo " Processes reference SLC data and DEM to make .lon and .lat files "
   echo " created: Mark Bemelmans July 2023, Bristol"
   exit
 fi
