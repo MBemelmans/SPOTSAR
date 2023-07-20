@@ -108,7 +108,7 @@ START_PAIR=$2
 END_PAIR=$3
 
 ## read in parameters ##
-source read_PO_params.sh
+source read_PO_params_2.sh
 
 ## set script name for logging ##
 script_name='(SLC_PO_SBAS_prep)'
@@ -134,7 +134,7 @@ echo "Do you wish to do pre-processing? (y/n): "
 read ANSWER
 
 if [ $ANSWER == "y" ]; then
-  source geocode_ref_slc.sh
+  source geocode_ref_slc_2.sh
 fi 
 
 ## reset script name ##
@@ -209,7 +209,7 @@ do
   fi
 
 
-  source run_PO_on_pair.sh
+  source run_PO_on_pair_2.sh
 
   echo "completed pair $x, on to the next one!"
   cd ../..

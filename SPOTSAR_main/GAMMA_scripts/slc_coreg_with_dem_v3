@@ -34,8 +34,8 @@ function exec_cmd() {
 
 if [ "$#" == "0" ]; then
   echo " "
-  echo " usage: slc_coreg_with_dem_v2 ref_file sec_file DEM DEM_PAR demlat demlon LOG"
-  echo " e.g. slc_coreg_with_dem_v2 c20200121 c20200127"
+  echo " usage: slc_coreg_with_dem_v4 ref_file sec_file DEM DEM_PAR demlat demlon LOG"
+  echo " e.g. slc_coreg_with_dem_v4 c20200121 c20200127"
   echo " Processes 2 SLC files for coregistration using external DEM "
   echo " Does the image co-registration between two dates"
   echo " results stored in existing OFFSET_PAIRS folder (in {ref_file}_{sec_file} folder)"
@@ -46,13 +46,13 @@ fi
 
 if [ $# != 7 ]; then
   echo "Required number of input arguments have not been specified."
-  echo "Type 'slc_coreg_with_dem_v2' for help."
+  echo "Type 'slc_coreg_with_dem_v4' for help."
   exit -1
 fi
 
 if [ $# > 7 ]; then
   echo "Too many input arguments."
-  echo "Type 'slc_coreg_with_dem_v2' for help."
+  echo "Type 'slc_coreg_with_dem_v4' for help."
   exit -1
 fi
 
@@ -67,7 +67,7 @@ demlon=$6
 LOG=$7
 PAIRNAME=${ref_file}_$sec_file
 
-script_name='(slc_coreg_with_dem_v3)'
+script_name='(slc_coreg_with_dem_v4)'
 
 # if (-e "OFFSET_PAIRS/$PAIRNAME" == 1) then
 #   rm -rf OFFSET_PAIRS/$PAIRNAME
@@ -78,7 +78,7 @@ script_name='(slc_coreg_with_dem_v3)'
 # endif
 
 echo " " >> $LOG
-echo "$script_name slc_coreg_with_dem_v3 $ref_file $sec_file $DEM $DEM_PAR" >> $LOG
+echo "$script_name slc_coreg_with_dem_v4 $ref_file $sec_file $DEM $DEM_PAR" >> $LOG
 echo " " >> $LOG
 
 
@@ -164,17 +164,12 @@ done
 echo "$script_name step 3.4: refine rough sim_sar-ref.mli look-up table using offset polynoimals stored in $ref_file.diff_par"
 exec_cmd gc_map_fine $ref_file.rough.map_to_rdc $map_width ${ref_file}.diff_par $ref_file.map_to_rdc 0 show
 
-### new radiometric calibration
-
-
-
 echo "$script_name step 3.5: create dem in radar coordinates of ref.mli using refined sim_sar-ref.mli look-up table"
 exec_cmd geocode $ref_file.map_to_rdc $ref_file.dem_seg $map_width $ref_file.dem.rdc $width $lines 0 0 show
 
 
 echo "$script_name step 3.6: using both mli and DEM in ref.mli radar coordinates, create roughly look-up table between ref.mli and sec.mli"
 exec_cmd rdc_trans ${ref_file}.rmli.par $ref_file.dem.rdc $sec_file.mli.par ${ref_file}.mli2.rough.map_to_rdc show
-
 
 echo "$script_name step 3.7: geocode ref.mli with ref.mli-sec.mli rough look-up table"
 set width2 = `awk '$1 == "range_samples:" {print $2}' ${sec_file}.mli.par`
@@ -248,10 +243,6 @@ exec_cmd raspwr $ref_file.mli $width show
 exec_cmd raspwr $sec_file.rmli $width show
 
 echo "$script_name step 7: move RSLC and RMLI to ./RSLC folder"
-# mv ./$ref_file.slc ../RSLC/$ref_file.rslc
-# mv ./$ref_file.slc.par ../RSLC/$ref_file.rslc.par
-# mv ./$ref_file.mli ../RSLC/$ref_file.rmli
-# mv ./$ref_file.mli.par ../RSLC/$ref_file.rmli.par
 mv ./$sec_file.slc ../RSLC/$sec_file.rslc
 mv ./$sec_file.slc.par ../RSLC/$sec_file.rslc.par
 mv ./$sec_file.mli ../RSLC/$sec_file.rmli

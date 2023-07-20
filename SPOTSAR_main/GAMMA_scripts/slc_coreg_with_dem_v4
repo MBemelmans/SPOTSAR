@@ -1,0 +1,254 @@
+#!/bin/bash
+
+#### execute command function #####
+## This function is pre-pended   ##
+## any GAMMA function and will   ##
+## run the command + log the     ##
+## output in the $LOG file       ##
+## if 'show' is part of the      ##
+## command, the output will also ##
+## be shown on screen            ##
+###################################
+function exec_cmd() {
+    showintty=false
+    numargs=$#
+    prog2run=$1
+    prog_str="$prog2run "
+    shift # this removes $1 from the argument list causing $# to be decremented by 1 and making $2 the new $1
+    while [ $# -gt 0 ]; do
+        if [ "$1" == "show" ]; then
+            showintty=true
+        else
+            prog_str+="$1 "
+        fi
+        shift
+    done
+    echo "Executing the command: ${prog_str}, $showintty"
+    if $showintty; then
+        eval $prog_str | tee -a $LOG
+    else
+        eval $prog_str >> $LOG
+    fi
+    echo " "
+}
+
+if [ "$#" == "0" ]; then
+  echo " "
+  echo " usage: slc_coreg_with_dem_v4 ref_file sec_file DEM DEM_PAR demlat demlon LOG"
+  echo " e.g. slc_coreg_with_dem_v4 c20200121 c20200127"
+  echo " Processes 2 SLC files for coregistration using external DEM "
+  echo " Does the image co-registration between two dates"
+  echo " results stored in existing OFFSET_PAIRS folder (in {ref_file}_{sec_file} folder)"
+  echo " created: Mark Bemelmans 23/03/2021, Bristol"
+  echo " updated to seperate function: Mark Bemelmans 08/09/2022, Vanocuver, WA"
+  exit
+fi
+
+if [ $# != 7 ]; then
+  echo "Required number of input arguments have not been specified."
+  echo "Type 'slc_coreg_with_dem_v4' for help."
+  exit -1
+fi
+
+if [ $# > 7 ]; then
+  echo "Too many input arguments."
+  echo "Type 'slc_coreg_with_dem_v4' for help."
+  exit -1
+fi
+
+echo "step 1: read inputs"
+# DEM params
+ref_file=$1
+sec_file=$2
+DEM=$3
+DEM_PAR=$4
+demlat=$5
+demlon=$6
+LOG=$7
+PAIRNAME=${ref_file}_$sec_file
+
+script_name='(slc_coreg_with_dem_v4)'
+
+# if (-e "OFFSET_PAIRS/$PAIRNAME" == 1) then
+#   rm -rf OFFSET_PAIRS/$PAIRNAME
+# endif
+#
+# if (-e "OFFSET_PAIRS/$PAIRNAME" == 0) then
+#   mkdir OFFSET_PAIRS/$PAIRNAME
+# endif
+
+echo " " >> $LOG
+echo "$script_name slc_coreg_with_dem_v4 $ref_file $sec_file $DEM $DEM_PAR" >> $LOG
+echo " " >> $LOG
+
+
+echo "$script_name step 2: go into OFFSET_PAIRS folder and make pair specific folder + link to slc and mli files form cyyymmdd folders"
+cd PO_SBAS_PAIRS
+
+mkdir holder
+cd holder
+
+# make usefull links
+ln -s ../../$ref_file/$ref_file.* .
+ln -s ../../$sec_file/$sec_file.* .
+ln -s ../$ref_file.*
+############ Co-registration #################
+# comments above each function indicate examples from gamma co-registration example in GEO and DIFF user guides (v2.0 2017)
+
+echo "$script_name step 3.1: create simulated intensity image from DEM and ref.mli orbit data + rough look-up table for stransformation ref.mli and DEM"
+exec_cmd gc_map ${ref_file}.rmli.par – $DEM_PAR $DEM $ref_file.dem_seg.par $ref_file.dem_seg $ref_file.rough.map_to_rdc $demlat $demlon sim_sar u_map v_map inc psi pxi ls_map show
+
+
+# ## new radcal test
+# pixel_area ${ref_file}.rmli.par $ref_file.dem_seg.par $ref_file.dem_seg $ref_file.rough.map_to_rdc
+
+
+echo "$script_name step 3.2: geocode simulated intensity with rough ref.mli-DEM look-up table"
+# geocode LasVegas.rough.utm_to_rdc LasVegas.utm.sim_sar 2226 LasVegas.sim_sar 2500 1800 1 0
+map_width=`awk '$1 == "width:" {print $2}' ${ref_file}.dem_seg.par`
+width=`awk '$1 == "range_samples:" {print $2}' ${ref_file}.rmli.par`
+lines=`awk '$1 == "azimuth_lines:" {print $2}' ${ref_file}.rmli.par`
+exec_cmd geocode $ref_file.rough.map_to_rdc sim_sar $map_width sim_sar.rdc $width $lines 0 0 show
+# sim_sar needs to have the same dimensions as ref.mli
+
+echo "$script_name step 3.3: determine offset polynomials between simulated intensity and ref.mli"
+exec_cmd create_diff_par ${ref_file}.rmli.par - ${ref_file}.diff_par 1 0 show
+exec_cmd init_offsetm ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par show
+
+## perfrom coregistration using increasingly smaller windows and increasingly more windows
+off_win=512
+n_win=16
+ 
+while [ $off_win -ge 8 ]
+do
+  echo "$script_name off_win: $offwin n_win: $n_win"
+  exec_cmd offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp $off_win $off_win offsets 1 $n_win $n_win 0.2 7 - - - - show
+  exec_cmd offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 show
+  (($off_win/=2))
+  (($n_win*=2))
+done
+# # offset_pwrm <MLI-1>   <MLI-2>          <DIFF_par>     <offs> <ccp> [rwin] [azwin] [offsets] [n_ovr] [nr] [naz] [thres] [lanczos] [bw_frac] [pflag] [plt_flag] [ccs] [std_mean]
+# # offset_pwrm 25394.mli LasVegas.sim_sar 25394.diff_par offs   ccp   512    512     offsets   1       8    8     0.15
+# echo "offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 512 512 offsets 1 16 16 0.2 7 - - - - >> $LOG"
+# offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 512 512 offsets 1 16 16 0.2 7 - - - - >> $LOG
+# echo " "
+
+# # offset_fitm offs ccp 25394.diff_par coffs coffsets 0.15 3
+# echo "offset_fitm offs ccp ${ref_file}.diff_par coffs coofsets 0.2 4 >> $LOG"
+# offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 >> $LOG
+# echo " "
+
+# # offset_pwrm 25394.mli LasVegas.sim_sar 25394.diff_par offs ccp 128 128 offsets 2 24 24 0.15
+# echo "offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 256 256 offsets 1 32 32 0.2 7 - - - - >> $LOG"
+# offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 256 256 offsets 1 32 32 0.2 7 - - - - >> $LOG
+# echo " "
+
+# # offset_fitm offs ccp 25394.diff_par coffs coffsets .15 3
+# echo "offset_fitm offs ccp ${ref_file}.diff_par coffs coofsets 0.2 4 >> $LOG"
+# offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 >> $LOG
+# echo " "
+
+# # offset_pwrm 25394.mli LasVegas.sim_sar 25394.diff_par offs ccp 128 128 offsets 2 24 24 0.15
+# echo "offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 128 128 offsets 1 64 64 0.2 7 - - - - >> $LOG"
+# offset_pwrm  ${ref_file}.rmli sim_sar.rdc ${ref_file}.diff_par offs ccp 128 128 offsets 1 64 64 0.2 7 - - - - >> $LOG
+# echo " "
+
+# # offset_fitm offs ccp 25394.diff_par coffs coffsets .15 3
+# echo "offset_fitm offs ccp ${ref_file}.diff_par coffs coofsets 0.2 4 > offset_fitm.out"
+# offset_fitm offs ccp ${ref_file}.diff_par coffs coffsets 0.2 4 > offset_fitm.out
+# echo " "
+
+# `<\ to clean up>`
+
+
+echo "$script_name step 3.4: refine rough sim_sar-ref.mli look-up table using offset polynoimals stored in $ref_file.diff_par"
+exec_cmd gc_map_fine $ref_file.rough.map_to_rdc $map_width ${ref_file}.diff_par $ref_file.map_to_rdc 0 show
+
+echo "$script_name step 3.5: create dem in radar coordinates of ref.mli using refined sim_sar-ref.mli look-up table"
+exec_cmd geocode $ref_file.map_to_rdc $ref_file.dem_seg $map_width $ref_file.dem.rdc $width $lines 0 0 show
+
+
+echo "$script_name step 3.6: using both mli and DEM in ref.mli radar coordinates, create roughly look-up table between ref.mli and sec.mli"
+exec_cmd rdc_trans ${ref_file}.rmli.par $ref_file.dem.rdc $sec_file.mli.par ${ref_file}.mli2.rough.map_to_rdc show
+
+echo "$script_name step 3.7: geocode ref.mli with ref.mli-sec.mli rough look-up table"
+set width2 = `awk '$1 == "range_samples:" {print $2}' ${sec_file}.mli.par`
+set lines2 = `awk '$1 == "azimuth_lines:" {print $2}' ${sec_file}.mli.par`
+exec_cmd geocode ${ref_file}.mli2.rough.map_to_rdc ${ref_file}.rmli $width mli0 $width2 $lines2 2 0 show
+
+echo "$script_name step 3.8: determine offset polynomials between geocoded ref.mli (now in coordinates of sec.mli) and  sec.mli"
+exec_cmd create_diff_par ${sec_file}.mli.par - diff0 1 0 show
+
+exec_cmd init_offsetm mli0 ${sec_file}.mli diff0 1 1 show
+
+# `<to clean up>`
+
+## perfrom coregistration using increasingly smaller windows and increasingly more windows
+off_win=256
+n_win=16
+
+while [ $off_win -ge 16 ]
+do
+  echo "$script_name off_win: $offwin n_win: $n_win"
+  exec_cmd offset_pwrm mli0 ${sec_file}.mli diff0 offs0 ccp0 $off_win $off_win offsets 2 $n_win $n_win show
+  exec_cmd offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 show
+  (($off_win/=2))
+  (($n_win*=2))
+done
+
+# # offset_pwrm mli0 05721.mli diff0 offs0 ccp0 256 256 offsets 2 16 16
+# echo "offset_pwrm mli0 ${sec_file}.mli diff0 offs0 ccp0 256 256 offsets 2 16 16 >> $LOG"
+# offset_pwrm mli0 ${sec_file}.mli diff0 offs0 ccp0 256 256 offsets 2 16 16 >> $LOG
+# echo " "
+
+# # offset_fitm offs0 ccp0 diff0 coffs0 coffsets0 7. 4
+# echo "offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 >> $LOG"
+# offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 >> $LOG
+# echo " "
+
+
+# # offset_pwrm mli0 05721.mli diff0 offs0 ccp0 256 256 offsets 2 16 16
+# echo "offset_pwrm mli0 ${sec_file}.mli diff0 offs0 ccp0 128 128 offsets 2 32 32 >> $LOG"
+# offset_pwrm mli0 ${sec_file}.mli diff0 offs0 ccp0 128 128 offsets 2 32 32 >> $LOG
+# echo " "
+
+# # offset_fitm offs0 ccp0 diff0 coffs0 coffsets0 7. 4
+# echo "offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 >> $LOG"
+# offset_fitm offs0 ccp0 diff0 coff0 coffsets0 0.2 4 >> $LOG
+# echo " "
+
+# `</ to clean up >`
+
+echo "$script_name step 3.9: use offset polynomials to refine look-up table between ref.mli and sec.mli"
+exec_cmd gc_map_fine ${ref_file}.mli2.rough.map_to_rdc $width diff0 ${ref_file}.mli2.map_to_rdc show
+
+
+# create rmli with topo correction
+echo "$script_name step 4.1: resample sec.slc in coordinates of ref.slc, will still be imporved upon using further offset polynomials"
+exec_cmd SLC_interp_lt $sec_file.slc $ref_file.rslc.par $sec_file.slc.par ${ref_file}.mli2.map_to_rdc ${ref_file}.rmli.par $sec_file.mli.par - $sec_file.rslc0 $sec_file.rslc0.par - 0 5 show
+
+echo "$script_name step 4.2: estimate offset polynomials between ref.slc and resampled sec.slc (sec.rslc)"
+exec_cmd create_offset ${ref_file}.rslc.par $sec_file.rslc0.par off 1 1 1 0 show
+exec_cmd offset_pwr ${ref_file}.rslc $sec_file.rslc0 ${ref_file}.rslc.par $sec_file.rslc0.par off offs ccp 128 128 offsets 2 64 64 show
+exec_cmd offset_fit offs ccp off coffs coffsets 0.15 4 show
+
+echo "$script_name step 4.3: redo resampling of sec.mli using estimated offset polynomials"
+exec_cmd SLC_interp_lt $sec_file.slc $ref_file.rslc.par $sec_file.slc.par ${ref_file}.mli2.map_to_rdc ${ref_file}.rmli.par $sec_file.mli.par off $sec_file.rslc $sec_file.rslc.par - 0 5 show
+
+echo "$script_name step 5: make mli from sec_file.rslc"
+exec_cmd multi_look $sec_file.rslc $sec_file.rslc.par $sec_file.rmli $sec_file.rmli.par 1 1 show 
+
+echo "$script_name step 6: convert ref.mli and sec.rmli to ras for visual inspection"
+exec_cmd raspwr $ref_file.mli $width show
+exec_cmd raspwr $sec_file.rmli $width show
+
+echo "$script_name step 7: move RSLC and RMLI to ./RSLC folder"
+mv ./$sec_file.slc ../RSLC/$sec_file.rslc
+mv ./$sec_file.slc.par ../RSLC/$sec_file.rslc.par
+mv ./$sec_file.mli ../RSLC/$sec_file.rmli
+mv ./$sec_file.mli.par ../RSLC/$sec_file.rmli.par
+
+echo "$script_name step 8: delete temporary ./holder folder"
+cd ..
+rm -rf ./holder
+cd ..
