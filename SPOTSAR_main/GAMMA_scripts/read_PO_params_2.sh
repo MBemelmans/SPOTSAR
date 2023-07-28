@@ -87,43 +87,46 @@ check_pos_int $azstep
 map_rlks=`grep map_rlks $paramfile | awk '{print $2}'`
 map_alks=`grep map_alks $paramfile | awk '{print $2}'`
 
+init_rwin=`grep init_rngwin $paramfile | awk '{print $2}'`
+init_awin=`grep init_aziwin $paramfile | awk '{print $2}'`
+
 slc_rwin1=`grep rngwin_PO1 $paramfile | awk '{print $2}'`
-slc_azwin1=`grep aziwin_PO1 $paramfile | awk '{print $2}'`
+slc_awin1=`grep aziwin_PO1 $paramfile | awk '{print $2}'`
 
 slc_rwin2=`grep rngwin_PO2 $paramfile | awk '{print $2}'`
-slc_azwin2=`grep aziwin_PO2 $paramfile | awk '{print $2}'`
+slc_awin2=`grep aziwin_PO2 $paramfile | awk '{print $2}'`
 
 slc_rwin3=`grep rngwin_PO3 $paramfile | awk '{print $2}'`
-slc_azwin3=`grep aziwin_PO3 $paramfile | awk '{print $2}'`
+slc_awin3=`grep aziwin_PO3 $paramfile | awk '{print $2}'`
 
 slc_rwin4=`grep rngwin_PO4 $paramfile | awk '{print $2}'`
-slc_azwin4=`grep aziwin_PO4 $paramfile | awk '{print $2}'`
+slc_awin4=`grep aziwin_PO4 $paramfile | awk '{print $2}'`
 
 slc_rwin5=`grep rngwin_PO5 $paramfile | awk '{print $2}'`
-slc_azwin5=`grep aziwin_PO5 $paramfile | awk '{print $2}'`
+slc_awin5=`grep aziwin_PO5 $paramfile | awk '{print $2}'`
 
 check_pos_int $map_rlks
 check_pos_int $map_alks
 
 check_pos_int $slc_rwin1
-check_pos_int $slc_azwin1
+check_pos_int $slc_awin1
 
 check_pos_int $slc_rwin2
-check_pos_int $slc_azwin2
+check_pos_int $slc_awin2
 
 check_pos_int $slc_rwin3
-check_pos_int $slc_azwin3
+check_pos_int $slc_awin3
 
 check_pos_int $slc_rwin4
-check_pos_int $slc_azwin4
+check_pos_int $slc_awin4
 
 check_pos_int $slc_rwin5
-check_pos_int $slc_azwin5
+check_pos_int $slc_awin5
 
 ccpthresh=`grep ccpthresh $paramfile | awk '{print $2}'` # the cross-correlation threshold to accept offset value
 bwfrac=`grep bwfrac $paramfile | awk '{print $2}'` # bandwidth fraction for window matching in offset_pwr_trackingm
 SLC_ovr=`grep SLC_ovr $paramfile | awk '{print $2}'` # SLC oversampling factor, generally 2 is recommended
-final_cpthresh=`grep final_ccpthresh $paramfile | awk '{print $2}'` # cross-correlation threshold to accept offset estimates from offset_pwr_trackingm
+final_cpthresh=`grep final_cpthresh $paramfile | awk '{print $2}'` # cross-correlation threshold to accept offset estimates from offset_pwr_trackingm
 
 check_pos_float $ccpthresh
 check_pos_float $bwfrac

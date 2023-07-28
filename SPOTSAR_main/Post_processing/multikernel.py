@@ -443,10 +443,12 @@ class MultiKernel:
         # local azimuthal projection (rect-linear with minimum local distortion)
         # then applies a buffer of desired radius in meters to that point 
         # and makes a n-gon polygonal apprixomation of a circle 
-        nan_mask = np.isnan(self.MKA_R_off)
-        p_slice = self.Stack[0]
-        lons = getattr(p_slice,'Lon_off_vec')
-        lats = getattr(p_slice,'Lat_off_vec')
+        nan_mask = np.isnan(self.MKA_R_off).flatten()
+        p_slice = self.Stack[1]
+        lons = getattr(p_slice,'Lon_off').flatten()
+        lats = getattr(p_slice,'Lat_off').flatten()
+        lons = getattr(p_slice,'Lon_off').flatten()
+        lats = getattr(p_slice,'Lat_off').flatten()
         # lons = self.Lon.flatten()
         # lats = self.Lat.flatten()
         data_attr = getattr(self,data_attr_name).flatten()

@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 ###############################################################################
 ######### Bulk-processing of multi-kernel Sub-Pixel Offset Tracking ###########
@@ -120,10 +120,10 @@ if [ $step_win_flag == 0 ]; then
 fi
 
 ## set log ##
-LOG=SLC_PO_SBAS_prep.log
+LOG='SLC_PO_SBAS_prep.log'
 rm -f $LOG
 date | tee $LOG
-
+echo "$LOG"
 
 ## user input to ask for pre-processing ##
 ## Pre-processing involves creating the ##
@@ -148,7 +148,7 @@ fi
 
 ## make symlink to reference RSLC ##
 echo " "
-  ln -s ./RSLC2/$COMMON_ref.rslc ./$COMMON_ref.rslc | tee -a $LOG
+  ln -s ./RSLC/$COMMON_ref.rslc ./$COMMON_ref.rslc | tee -a $LOG
 echo " "
 
 ## perform cropping on reference SLC ##
@@ -156,10 +156,10 @@ if [ $cropping_flag == 1 ]; then
   # crop .rslcs with SLC_copy to extract smaller area around the volcano
   exec_cmd SLC_copy $COMMON_ref.rslc $COMMON_ref.rslc.par $COMMON_ref.crop.rslc $COMMON_ref.crop.rslc.par 4 - $rstart $n_samples_crop $astart $n_lines_crop - - show
 fi
-
+echo "before create_PO_DEM_files"
 ## create DEM files that fit step-size of Pixel offset tracking ##
-exec_cmd create_PO_DEM_files $cropping_flag $COMMON_ref $DEM $DEM_PAR $map_rlks $map_alks $demlat $demlon show
-
+exec_cmd create_PO_DEM_files $cropping_flag $COMMON_ref $DEM $DEM_PAR $map_rlks $map_alks $demlat $demlon $LOG show
+echo "after create_PO_DEM_files"
 ## reset script name ##
 script_name='(SLC_PO_SBAS_prep)'
 
@@ -190,25 +190,25 @@ do
   if [ ! -d "./$ORBIT_ref" ]; then
   # if SLC folder is not present, make SLC of acquisitions in pair x
     if [ $sat_tag == "CSK" ]; then
-      exec_cmd CSK_MAKE_SLC $DATA_dir $COMMON_ref 1 $RLKS $ALKS show
+      exec_cmd CSK_MAKE_SLC $DATA_dir $ORBIT_ref 1 $RLKS $ALKS show
     fi
   
     if [ $sat_tag == "TSX" ]; then
-      exec_cmd TSX_MAKE_SLC $DATA_dir $COMMON_ref 1 $RLKS $ALKS show
+      exec_cmd TSX_MAKE_SLC $DATA_dir $ORBIT_ref 1 $RLKS $ALKS show
     fi
   fi
   if [ ! -d "./$ORBIT_sec" ]; then
   # if SLC folder is not present, make SLC of acquisitions in pair x
     if [ $sat_tag == "CSK" ]; then
-      exec_cmd CSK_MAKE_SLC $DATA_dir $COMMON_sec 1 $RLKS $ALKS show
+      exec_cmd CSK_MAKE_SLC $DATA_dir $ORBIT_sec 1 $RLKS $ALKS show
     fi
   
     if [ $sat_tag == "TSX" ]; then
-      exec_cmd TSX_MAKE_SLC $DATA_dir $COMMON_sec 1 $RLKS $ALKS show
+      exec_cmd TSX_MAKE_SLC $DATA_dir $ORBIT_sec 1 $RLKS $ALKS show
     fi
   fi
 
-
+  # exit(-1)
   source run_PO_on_pair_2.sh
 
   echo "completed pair $x, on to the next one!"
