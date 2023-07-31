@@ -78,3 +78,4 @@ def plot_vec_attr(obj,attr,step,scale,width =0.005 ,attr_lims=[0,1],qk_length=1,
                              coordinates='figure')
     if attr != []:
         axes.set_title(f'{attr}: min = {np.nanmax([np.nanmin(attr_copy),attr_lims[0]])} max = {np.nanmin([np.nanmax(attr_copy),attr_lims[1]])}')
+    return fig1, axes

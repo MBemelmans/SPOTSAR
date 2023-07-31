@@ -444,7 +444,7 @@ class SingleKernel:
         self.Nan_mask2 = np.reshape(nan_mask, arr_shape)
 
     def run_HDBSCAN(
-        self, min_cluster_size, min_samples, single_cluster, cluster_selection_epsilon
+        self, min_cluster_size, min_samples, single_cluster=False, cluster_selection_epsilon=0.0
     ):
         """
         function to perform HDBSCAN
@@ -457,26 +457,35 @@ class SingleKernel:
         )
         hdb = clf_hdb.fit(self.X_pca)
         # self.soft_clusters_vec = hdbscan.all_points_membership_vectors(hdb)
-        self.HDBSCAN_labels_vec = hdb.labels_
-        self.HDBSCAN_outlier_scores_vec = hdb.outlier_scores_
-        self.HDBSCAN_probabilities_vec = hdb.probabilities_
-        self.HDBSCAN_labels = np.full(np.shape(self.R_off), np.nan)
-        self.HDBSCAN_outlier_scores = np.full(np.shape(self.R_off), np.nan)
-        self.HDBSCAN_probabilities = np.full(np.shape(self.R_off), np.nan)
-        self.HDBSCAN_labels[self.Row_index_vec, self.Col_index_vec] = hdb.labels_
-        self.HDBSCAN_outlier_scores[
+        HDBSCAN_labels_vec = hdb.labels_
+        HDBSCAN_outlier_scores_vec = hdb.outlier_scores_
+        HDBSCAN_probabilities_vec = hdb.probabilities_
+        setattr(self,f'HDBSCAN_labels_{min_cluster_size}_{min_samples}_vec',HDBSCAN_labels_vec)
+        setattr(self,f'HDBSCAN_outlier_scores_{min_cluster_size}_{min_samples}_vec',HDBSCAN_outlier_scores_vec)
+        setattr(self,f'HDBSCAN_probabilities_{min_cluster_size}_{min_samples}_vec',HDBSCAN_probabilities_vec)
+        HDBSCAN_labels = np.full(np.shape(self.R_off), np.nan)
+        HDBSCAN_outlier_scores = np.full(np.shape(self.R_off), np.nan)
+        HDBSCAN_probabilities = np.full(np.shape(self.R_off), np.nan)
+        HDBSCAN_labels[self.Row_index_vec, self.Col_index_vec] = hdb.labels_
+        HDBSCAN_outlier_scores[
             self.Row_index_vec, self.Col_index_vec
         ] = hdb.outlier_scores_
-        self.HDBSCAN_probabilities[
+        HDBSCAN_probabilities[
             self.Row_index_vec, self.Col_index_vec
         ] = hdb.probabilities_
+        setattr(self,f'HDBSCAN_labels_{min_cluster_size}_{min_samples}',HDBSCAN_labels)
+        setattr(self,f'HDBSCAN_outlier_scores_{min_cluster_size}_{min_samples}',HDBSCAN_outlier_scores)
+        setattr(self,f'HDBSCAN_probabilities_{min_cluster_size}_{min_samples}',HDBSCAN_probabilities)
+        
+        return HDBSCAN_labels, HDBSCAN_outlier_scores, HDBSCAN_probabilities
 
-    def rem_outliers_HDBSCAN(self):
+    def rem_outliers_HDBSCAN(self,min_cluster_size,min_samples):
         """
         removes outliers found using HDBSCAN
         """
         arr_shape = np.shape(self.R_off)
-        nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
+        # nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
+        nan_mask = getattr(self,f'HDBSCAN_{min_cluster_size}_{min_samples}')== -1
         self.A_off = np.reshape(np.where(nan_mask, np.nan, self.A_off), arr_shape)
         self.R_off = np.reshape(np.where(nan_mask, np.nan, self.R_off), arr_shape)
         self.Ccp_off = np.reshape(np.where(nan_mask, np.nan, self.Ccp_off), arr_shape)
@@ -515,18 +524,23 @@ class SingleKernel:
             leaf_size=leaf_size,
             contamination=contamination,
         )
-        self.LOF_labels_vec = clf.fit_predict(self.X)
-        self.LOF_outlier_score_vec = clf.negative_outlier_factor_
-        self.LOF_labels = np.full(np.shape(self.R_off), np.nan)
-        self.LOF_outlier_scores = np.full(np.shape(self.R_off), np.nan)
-        self.LOF_labels[self.Row_index_vec, self.Col_index_vec] = clf.fit_predict(
+        LOF_labels_vec = clf.fit_predict(self.X)
+        LOF_outlier_score_vec = clf.negative_outlier_factor_
+        setattr(self,f'LOF_labels_{n_neighbors}_vec',LOF_labels_vec)
+        setattr(self,f'LOF_outlier_score_{n_neighbors}_vec',LOF_outlier_score_vec)
+        
+        LOF_labels = np.full(np.shape(self.R_off), np.nan)
+        LOF_outlier_scores = np.full(np.shape(self.R_off), np.nan)
+        LOF_labels[self.Row_index_vec, self.Col_index_vec] = clf.fit_predict(
             self.X
         )
-        self.LOF_outlier_scores[
+        LOF_outlier_scores[
             self.Row_index_vec, self.Col_index_vec
         ] = clf.negative_outlier_factor_
+        setattr(self,f'LOF_labels_{n_neighbors}',LOF_labels)
+        setattr(self,f'LOF_outlier_scores_{n_neighbors}',LOF_outlier_scores)
 
-        return self.LOF_labels, self.LOF_outlier_scores
+        return LOF_labels, LOF_outlier_scores
 
     # @vectorize(['float64(float64,float64)'])
     def calc_local_L2(self):

@@ -109,8 +109,8 @@
     exec_cmd offset_pwr_tracking2 $ORBIT_ref.crop.rslc $ORBIT_sec.crop.rslc $ORBIT_ref.crop.rslc.par $ORBIT_sec.crop.rslc.par \
                                   ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} \
                                   ${PAIRNAME}_${slc_rwin2}_${slc_awin2}.off_par offs_${slc_rwin2}_${slc_awin2} \
-                                  $slc_rwin3 $slc_awin3 offsets_${rwin3}_${awin3}.txt 2 $ccpthresh \
-                                  $map_rlks $map_alks - - - - 1.0 - - - - ccs_${rwin3}_${awin3} show
+                                  $slc_rwin3 $slc_awin3 offsets_${slc_rwin3}_${slc_awin3}.txt 2 $ccpthresh \
+                                  $map_rlks $map_alks - - - - 1.0 - - - - ccs_${slc_rwin3}_${slc_awin3} show
 
     exec_cmd offset_fit offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par coffs_${slc_rwin3}_${slc_awin3} coffsets_${slc_rwin3}_${slc_awin3}.txt $ccpthresh 4 0 show
     exec_cmd offset_tracking offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} ${ORBIT_ref}.rslc.par ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par disp_${slc_rwin3}_${slc_awin3}_coffs disp_${slc_rwin3}_${slc_awin3}.txt 1 $final_cpthresh 1 show
@@ -118,7 +118,7 @@
     #rwin4
     echo "$script_name $ORBIT_ref $ORBIT_sec rwin: $rwin4 azwin: $azwin4 slc_rwin: $slc_rwin4 slc_azwin: $slc_azwin4"
     exec_cmd offset_pwr_tracking2 $ORBIT_ref.crop.rslc $ORBIT_sec.crop.rslc $ORBIT_ref.crop.rslc.par $ORBIT_sec.crop.rslc.par \
-                                  ${PAIRNAME}_${slc_rwin4}_${slc_awin4}.off_par offs_${slc_rwin4}_${slc_awin4} ccp_${rwin4}_${awin4} \
+                                  ${PAIRNAME}_${slc_rwin4}_${slc_awin4}.off_par offs_${slc_rwin4}_${slc_awin4} ccp_${slc_rwin4}_${slc_awin4} \
                                   ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par offs_${slc_rwin3}_${slc_awin3} \
                                   $slc_rwin4 $slc_awin4 offsets_${slc_rwin4}_${slc_awin4}.txt 2 $ccpthresh \
                                   $map_rlks $map_alks - - - - 1.0 - - - - ccs_${slc_rwin4}_${slc_awin4} show
@@ -202,8 +202,8 @@
     exec_cmd offset_pwr_tracking2 $ORBIT_ref.rslc $ORBIT_sec.rslc $ORBIT_ref.rslc.par $ORBIT_sec.rslc.par \
                                   ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} \
                                   ${PAIRNAME}_${slc_rwin2}_${slc_awin2}.off_par offs_${slc_rwin2}_${slc_awin2} \
-                                  $slc_rwin3 $slc_awin3 offsets_${rwin3}_${awin3}.txt 2 $ccpthresh \
-                                  $map_rlks $map_alks - - - - 1.0 - - - - ccs_${rwin3}_${awin3} show
+                                  $slc_rwin3 $slc_awin3 offsets_${slc_rwin3}_${slc_awin3}.txt 2 $ccpthresh \
+                                  $map_rlks $map_alks - - - - 1.0 - - - - ccs_${slc_rwin3}_${slc_awin3} show
 
     exec_cmd offset_fit offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par coffs_${slc_rwin3}_${slc_awin3} coffsets_${slc_rwin3}_${slc_awin3}.txt $ccpthresh 4 0 show
     exec_cmd offset_tracking offs_${slc_rwin3}_${slc_awin3} ccp_${slc_rwin3}_${slc_awin3} ${ORBIT_ref}.rslc.par ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par disp_${slc_rwin3}_${slc_awin3}_coffs disp_${slc_rwin3}_${slc_awin3}.txt 1 $final_cpthresh 1 show
@@ -211,7 +211,7 @@
     #rwin4
     echo "$script_name $ORBIT_ref $ORBIT_sec rwin: $rwin4 azwin: $azwin4 slc_rwin: $slc_rwin4 slc_azwin: $slc_azwin4"
     exec_cmd offset_pwr_tracking2 $ORBIT_ref.rslc $ORBIT_sec.rslc $ORBIT_ref.rslc.par $ORBIT_sec.rslc.par \
-                                  ${PAIRNAME}_${slc_rwin4}_${slc_awin4}.off_par offs_${slc_rwin4}_${slc_awin4} ccp_${rwin4}_${awin4} \
+                                  ${PAIRNAME}_${slc_rwin4}_${slc_awin4}.off_par offs_${slc_rwin4}_${slc_awin4} ccp_${slc_rwin4}_${slc_awin4} \
                                   ${PAIRNAME}_${slc_rwin3}_${slc_awin3}.off_par offs_${slc_rwin3}_${slc_awin3} \
                                   $slc_rwin4 $slc_awin4 offsets_${slc_rwin4}_${slc_awin4}.txt 2 $ccpthresh \
                                   $map_rlks $map_alks - - - - 1.0 - - - - ccs_${slc_rwin4}_${slc_awin4} show
