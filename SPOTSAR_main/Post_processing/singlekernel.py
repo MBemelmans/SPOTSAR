@@ -9,6 +9,7 @@ from sklearn.cluster import DBSCAN
 import hdbscan
 from sklearn import metrics
 from sklearn.metrics import pairwise_distances
+import h5py
 
 
 class SingleKernel:
@@ -655,3 +656,24 @@ class SingleKernel:
             self.A_win,
             self.R_win,
         ]
+
+    def to_hdf5(self,filename,query_keys):
+        """Creates hdf5 file for specified query keys.
+
+        Args:
+            filename (str): filename of hdf5 file. use .h5 file type
+            query_keys (list of str): list of query keys to include in hdf5 file
+        """
+        f = h5py.File(filename,'w')
+        for qkey in query_keys:
+            q_attr = getattr(self,qkey)
+            f.create_dataset(qkey, data = q_attr)
+        f.close()
+
+        
+
+    # def to_csv(self):
+
+    #     # writes output to text file with name f'{name}_{r_win}_{a_win}_outlier_detected.csv
+
+    # def to_pickle(self):
