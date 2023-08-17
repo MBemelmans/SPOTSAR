@@ -253,6 +253,35 @@ class SingleKernel:
         if hasattr(self, "Phase"):
             self.Phase_vec = np.ravel(self.Phase)[~self.Nan_mask_vec]
 
+    def reset_vecs(self):
+        """
+        returns nan free data and gives index off data in class instance.
+        """
+        self.Row_index, self.Col_index = np.indices(np.shape(self.R_idx))
+        self.Nan_mask_vec = np.ravel(self.Nan_mask)
+        self.Nan_mask_vec1 = np.ravel(np.isnan(self.A_off))
+        self.Nan_mask_comb = (self.Nan_mask_vec) | (self.Nan_mask_vec1)
+        self.A_off_vec = np.ravel(self.A_off)[~self.Nan_mask_comb]
+        self.R_off_vec = np.ravel(self.R_off)[~self.Nan_mask_comb]
+        self.A_idx_vec = np.ravel(self.A_idx)[~self.Nan_mask_comb]
+        self.R_idx_vec = np.ravel(self.R_idx)[~self.Nan_mask_comb]
+        self.Ccp_off_vec = np.ravel(self.Ccp_off)[~self.Nan_mask_comb]
+        self.Ccs_off_vec = np.ravel(self.Ccs_off)[~self.Nan_mask_comb]
+        self.Lon_off_vec = np.ravel(self.Lon_off)[~self.Nan_mask_comb]
+        self.Lat_off_vec = np.ravel(self.Lat_off)[~self.Nan_mask_comb]
+        self.Row_index_vec = np.ravel(self.Row_index)[~self.Nan_mask_comb]
+        self.Col_index_vec = np.ravel(self.Col_index)[~self.Nan_mask_comb]
+        # add optional attributes
+        if hasattr(self, "SNR"):
+            self.SNR_vec = np.ravel(self.SNR)[~self.Nan_mask_comb]
+        if hasattr(self, "Mag"):
+            self.Mag_vec = np.ravel(self.Mag)[~self.Nan_mask_comb]
+        if hasattr(self, "X_off"):
+            self.X_off_vec = np.ravel(self.X_off)[~self.Nan_mask_comb]
+            self.Y_off_vec = np.ravel(self.Y_off)[~self.Nan_mask_comb]
+        if hasattr(self, "Phase"):
+            self.Phase_vec = np.ravel(self.Phase)[~self.Nan_mask_comb]
+
     def get_Row_col_idx(self):
         """retrieve row and column index of 2d array data
 
@@ -350,6 +379,58 @@ class SingleKernel:
         # calculate phase from north
         phase_vec = (
             np.degrees(-np.arctan2(self.A_off_vec, self.R_off_vec)) + 90 + self.Heading
+        )
+        phase_vec = np.where(phase_vec < 0, phase_vec + 360, phase_vec % 360)
+
+        # calculate sin and cosine components for continuous signal (no disconitnuity from 359-> 0 degrees)
+        cos_vec = np.cos(np.deg2rad(phase_vec))
+        sin_vec = np.sin(np.deg2rad(phase_vec))
+        # define component matrix
+        if mode == 0:
+            X_pre = np.column_stack(
+                (self.Lon_off_vec, self.Lat_off_vec, mag_vec, cos_vec, sin_vec)
+            )
+        elif mode == 1:
+            X_pre = np.column_stack(
+                (self.Lon_off_vec, self.Lat_off_vec, self.R_off_vec, self.A_off_vec)
+            )
+            diff = -1
+        elif mode == 2:
+            X_pre = np.column_stack(
+                (self.Lon_off_vec, self.Lat_off_vec, mag_vec, phase_vec)
+            )
+            diff = -1
+        else:
+            print("ERROR: mode must be either 0 (default), 1, or 2")
+
+        X = pre.StandardScaler().fit_transform(X_pre)
+        if plot_hist == 1:
+            fig3, ax = plt.subplots(1, 5, figsize=(8, 8))
+            ax[0].hist(X[:, 0], n_bins)
+            ax[1].hist(X[:, 1], n_bins)
+            ax[2].hist(X[:, 2], n_bins)
+            ax[3].hist(X[:, 3], n_bins)
+            if mode == 0:
+                ax[4].hist(X[:, 4], n_bins)
+
+        self.X = X
+        self.X_pre = X_pre
+        return self.X_pre, self.X, np.sum(diff)
+    
+    def prep_DBSCAN2(self, mode, plot_hist, n_bins):
+        """
+        prepares data for DBSCAN (or HDBSCAN)
+        choose mode = 0 (default) to work with longitude, latitude, magnitude, sine, cosine
+        choose mode = 1 to work with  longitude, latitude, range offset, azimuth offset
+        choose mode = 2 to work with longitude, latitude, magnitude, direction
+        choose plot_hist = 1 to plot histograms of normalised components
+        """
+
+        # calculate magnitude of displacement vector
+        mag_vec = np.hypot(self.R_off.ravel(), self.A_off.ravel())
+        # calculate phase from north
+        phase_vec = (
+            np.degrees(-np.arctan2(self.A_off.ravel(), self.R_off.ravel())) + 90 + self.Heading
         )
         phase_vec = np.where(phase_vec < 0, phase_vec + 360, phase_vec % 360)
 
@@ -488,6 +569,32 @@ class SingleKernel:
         # nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
         nan_mask = getattr(self,f'HDBSCAN_{min_cluster_size}_{min_samples}')== -1
         self.A_off = np.reshape(np.where(nan_mask, np.nan, self.A_off), arr_shape)
+        self.R_off = np.reshape(np.where(nan_mask, np.nan, self.R_off), arr_shape)
+        self.Ccp_off = np.reshape(np.where(nan_mask, np.nan, self.Ccp_off), arr_shape)
+        self.Ccs_off = np.reshape(np.where(nan_mask, np.nan, self.Ccs_off), arr_shape)
+        self.Lat_off = np.reshape(np.where(nan_mask, np.nan, self.Lat_off), arr_shape)
+        self.Lon_off = np.reshape(np.where(nan_mask, np.nan, self.Lon_off), arr_shape)
+        # compute for optional attributes
+        if hasattr(self, "SNR"):
+            self.SNR = np.reshape(np.where(nan_mask, np.nan, self.SNR), arr_shape)
+        if hasattr(self, "X_off"):
+            self.X_off = np.reshape(np.where(nan_mask, np.nan, self.X_off), arr_shape)
+            self.Y_off = np.reshape(np.where(nan_mask, np.nan, self.Y_off), arr_shape)
+        if hasattr(self, "Mag"):
+            self.Mag = np.reshape(np.where(nan_mask, np.nan, self.Mag), arr_shape)
+        if hasattr(self, "Phase"):
+            self.Phase = np.reshape(np.where(nan_mask, np.nan, self.Phase), arr_shape)
+        self.Nan_mask2 = np.reshape(nan_mask, arr_shape)
+
+    def rem_outliers_GLOSH(self,min_cluster_size,min_samples,cut_off):
+        """
+        removes outliers found using HDBSCAN
+        """
+        arr_shape = np.shape(self.R_off)
+        # nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
+        nan_mask = getattr(self,f'HDBSCAN_outlier_scores_{min_cluster_size}_{min_samples}')>cut_off
+        self.A_off = np.reshape(np.where(nan_mask, np.nan, self.A_off), arr_shape)
+
         self.R_off = np.reshape(np.where(nan_mask, np.nan, self.R_off), arr_shape)
         self.Ccp_off = np.reshape(np.where(nan_mask, np.nan, self.Ccp_off), arr_shape)
         self.Ccs_off = np.reshape(np.where(nan_mask, np.nan, self.Ccs_off), arr_shape)
@@ -664,13 +771,25 @@ class SingleKernel:
             filename (str): filename of hdf5 file. use .h5 file type
             query_keys (list of str): list of query keys to include in hdf5 file
         """
-        f = h5py.File(filename,'w')
+        f = h5py.File(filename,'a')
         for qkey in query_keys:
-            q_attr = getattr(self,qkey)
-            f.create_dataset(qkey, data = q_attr)
+            if qkey not in f:
+                q_attr = getattr(self,qkey)
+                f.create_dataset(qkey, data = q_attr)
         f.close()
 
-        
+    def from_hdf5(self,filename,query_keys):
+        """reads data from hdf5 file and stores as object attributes to singlekernel object
+
+        Args:
+            filename (str): file name of hdf5 file.
+            query_keys (list of str): list of query keys to read from hdf5 file
+        """
+        f = h5py.File(filename,'r')
+        for qkey in query_keys:
+            attr = f.get(f'{qkey}')
+            setattr(self,f'{qkey}',attr[:])
+        f.close()  
 
     # def to_csv(self):
 
