@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import haversine_distances
 from matplotlib.gridspec import GridSpec
 
 
-def plot_rand_vec_skip(obj, idx, step, border=0.005, alpha=0.3, power=2, cut_off=0):
+def plot_rand_vec_skip(obj, idx, step, border=0.005, alpha=0.3, power=2, cut_off=0, mag_thresh = 0):
     """
     Highlights a random vector in the offset map to assess if the vector is a outlier.
     Also calculates local weighted L2 based on overlapping region (windowsize-stepsize dependent)
@@ -69,42 +69,46 @@ def plot_rand_vec_skip(obj, idx, step, border=0.005, alpha=0.3, power=2, cut_off
         Dy = obj.Y_off_vec[region_filter] - q_vec[1]
 
         wL2 = np.sum(np.hypot(Dx, Dy) * weights)
-    if wL2 > cut_off:
-        return
+    if (wL2 < cut_off) or (np.hypot(q_vec[0],q_vec[1])<mag_thresh):
+        out = 0
+        return out
+    else:
+        out = 1
 
-    fig = plt.figure(figsize=(10, 10))
-    gs = GridSpec(1, 1)  # 2 rows, 2 columns
-    ax1 = fig.add_subplot(gs[0, 0])  # First row, first column
+        fig = plt.figure(figsize=(10, 10))
+        gs = GridSpec(1, 1)  # 2 rows, 2 columns
+        ax1 = fig.add_subplot(gs[0, 0])  # First row, first column
 
-    ax1.quiver(
-        obj.Lon_off_vec[region_filter2],
-        obj.Lat_off_vec[region_filter2],
-        obj.X_off_vec[region_filter2],
-        obj.Y_off_vec[region_filter2],
-        facecolor="black",
-        scale=50,
-        width=0.005,
-        edgecolor="k",
-        alpha=0.3,
-    )
-    ax1.quiver(
-        q_pos[0],
-        q_pos[1],
-        q_vec[0],
-        q_vec[1],
-        facecolor="red",
-        scale=50,
-        width=0.005,
-        edgecolor="k",
-        alpha=1,
-    )
+        ax1.quiver(
+            obj.Lon_off_vec[region_filter2],
+            obj.Lat_off_vec[region_filter2],
+            obj.X_off_vec[region_filter2],
+            obj.Y_off_vec[region_filter2],
+            facecolor="black",
+            scale=50,
+            width=0.005,
+            edgecolor="k",
+            alpha=0.3,
+        )
+        ax1.quiver(
+            q_pos[0],
+            q_pos[1],
+            q_vec[0],
+            q_vec[1],
+            facecolor="red",
+            scale=50,
+            width=0.005,
+            edgecolor="k",
+            alpha=1,
+        )
 
-    qv = ax1.quiver(
-        0, 0, 1, 0, facecolor="black", scale=50, width=0.005, edgecolor="k", alpha=1
-    )
-    ax1.quiverkey(
-        qv, 0.5, 0.95, 3, "Displacement (3m)", labelpos="E", coordinates="figure"
-    )
-    ax1.set_xlim([q_pos[0] - border, q_pos[0] + border])
-    ax1.set_ylim([q_pos[1] - border, q_pos[1] + border])
-    ax1.set_title(f"{q_r_idx},{q_a_idx},{wL2},{np.size(dists)}")
+        qv = ax1.quiver(
+            0, 0, 1, 0, facecolor="black", scale=50, width=0.005, edgecolor="k", alpha=1
+        )
+        ax1.quiverkey(
+            qv, 0.5, 0.95, 3, "Displacement (3m)", labelpos="E", coordinates="figure"
+        )
+        ax1.set_xlim([q_pos[0] - border, q_pos[0] + border])
+        ax1.set_ylim([q_pos[1] - border, q_pos[1] + border])
+        ax1.set_title(f"{q_r_idx},{q_a_idx},{wL2},{np.size(dists)}")
+        return out
