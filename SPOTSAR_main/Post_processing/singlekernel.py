@@ -9,6 +9,8 @@ from sklearn.cluster import DBSCAN
 import hdbscan
 from sklearn import metrics
 from sklearn.metrics import pairwise_distances
+from scipy.ndimage import generic_filter
+from skimage.morphology import disk
 import h5py
 
 
@@ -364,6 +366,21 @@ class SingleKernel:
         ll = np.column_stack((self.Lat_off_vec, self.Lon_off_vec))
         self.Dist_mat = pairwise_distances(ll, ll, metric="haversine")
         return self.Dist_mat
+    
+    def run_med_filt(
+        self, filt_radius, 
+        ):
+        """
+        function to perform median filter
+        """
+        footprint = disk(radius=filt_radius)
+        R_off_med = generic_filter(self.R_off, np.nanmedian, footprint=footprint)
+        A_off_med = generic_filter(self.A_off, np.nanmedian, footprint=footprint)
+        R_off_med_diff = np.abs(self.R_off-R_off_med)
+        A_off_med_diff = np.abs(self.A_off-A_off_med)
+        setattr(self,f'R_off_med_diff_{filt_radius}',R_off_med_diff)
+        setattr(self,f'A_off_med_diff_{filt_radius}',A_off_med_diff)
+        return R_off_med_diff, A_off_med_diff
 
     def prep_DBSCAN(self, mode, plot_hist, n_bins):
         """
