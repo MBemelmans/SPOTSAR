@@ -380,7 +380,38 @@ class SingleKernel:
         A_off_med_diff = np.abs(self.A_off-A_off_med)
         setattr(self,f'R_off_med_diff_{filt_radius}',R_off_med_diff)
         setattr(self,f'A_off_med_diff_{filt_radius}',A_off_med_diff)
-        return R_off_med_diff, A_off_med_diff
+        setattr(self,f'Mag_off_med_diff_{filt_radius}',np.hypot(R_off_med_diff, A_off_med_diff))
+        setattr(self,f'R_off_med_diff_{filt_radius}_vec',R_off_med_diff[self.Row_index_vec, self.Col_index_vec])
+        setattr(self,f'A_off_med_diff_{filt_radius}_vec',A_off_med_diff[self.Row_index_vec, self.Col_index_vec])
+        setattr(self,f'Mag_off_med_diff_{filt_radius}_vec',np.hypot(R_off_med_diff, A_off_med_diff)[self.Row_index_vec, self.Col_index_vec])
+        
+        return R_off_med_diff, A_off_med_diff, np.hypot(R_off_med_diff, A_off_med_diff)
+    
+    def rem_outliers_median(self,filt_rad,cut_off):
+        """
+        removes outliers found using median filter difference
+        """
+        arr_shape = np.shape(self.R_off)
+        # nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
+        nan_mask = getattr(self,f'Mag_off_med_diff_{filt_rad}')>cut_off
+        self.A_off = np.reshape(np.where(nan_mask, np.nan, self.A_off), arr_shape)
+
+        self.R_off = np.reshape(np.where(nan_mask, np.nan, self.R_off), arr_shape)
+        self.Ccp_off = np.reshape(np.where(nan_mask, np.nan, self.Ccp_off), arr_shape)
+        self.Ccs_off = np.reshape(np.where(nan_mask, np.nan, self.Ccs_off), arr_shape)
+        self.Lat_off = np.reshape(np.where(nan_mask, np.nan, self.Lat_off), arr_shape)
+        self.Lon_off = np.reshape(np.where(nan_mask, np.nan, self.Lon_off), arr_shape)
+        # compute for optional attributes
+        if hasattr(self, "SNR"):
+            self.SNR = np.reshape(np.where(nan_mask, np.nan, self.SNR), arr_shape)
+        if hasattr(self, "X_off"):
+            self.X_off = np.reshape(np.where(nan_mask, np.nan, self.X_off), arr_shape)
+            self.Y_off = np.reshape(np.where(nan_mask, np.nan, self.Y_off), arr_shape)
+        if hasattr(self, "Mag"):
+            self.Mag = np.reshape(np.where(nan_mask, np.nan, self.Mag), arr_shape)
+        if hasattr(self, "Phase"):
+            self.Phase = np.reshape(np.where(nan_mask, np.nan, self.Phase), arr_shape)
+        self.Nan_mask2 = np.reshape(nan_mask, arr_shape)
 
     def prep_DBSCAN(self, mode, plot_hist, n_bins):
         """
@@ -554,7 +585,8 @@ class SingleKernel:
             allow_single_cluster=single_cluster,
             cluster_selection_epsilon=cluster_selection_epsilon,
         )
-        hdb = clf_hdb.fit(self.X_pca)
+        # hdb = clf_hdb.fit(self.X_pca)
+        hdb = clf_hdb.fit(self.X_pre)
         # self.soft_clusters_vec = hdbscan.all_points_membership_vectors(hdb)
         HDBSCAN_labels_vec = hdb.labels_
         HDBSCAN_outlier_scores_vec = hdb.outlier_scores_

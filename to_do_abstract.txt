@@ -1,0 +1,160 @@
+To do:
+
+- apply method to image pair 1
+	- run outlier detection and removal (show before and after + MKA)
+	- run multi-kernel averaging
+	- compare against unfiltered results (make box plot for each window size and for MKA in range and azimuth)
+ 
+- apply method to pair 2-4
+	- compare mdvi std for pair 4
+	- show MKA results and highlight differences
+
+- show bad edge preservation
+	- show swath profile of different window sizes and MKA result
+
+- write discussion
+	- resolution and estimation precision
+	- comparison with EDM?
+	- influence of window size
+	- influence of vegetation
+	- influence of temporal baseline
+	- preservation of sharp boundaries
+	- preservation of small features
+
+- write conclusion
+	- summaries findings
+	- link back to general use case
+	- discuss modular approach (can be added to the processing chain at any point after offset estimation)
+	- discuss limitations
+	- discuss future direction
+	
+
+Write abstract
+	- measuring large flank movement at volcanoes is crucial to understand volcanic and landslide hazards. 
+	- ground monitoring is often missing or to limited to accurately assess the movement (extent/magnitude) of flank motion. 
+	- pixel offset tracking with high-resolution SAR data is uniquely capable of measuring large magnitude displacement with high-precision. 
+	- we propose a method for robust displacement estimation from pixel offset tracking
+	- the procedure uses pixel offset maps from multiple window sizes (kernels). The offset maps are filtered for outliers by using a median difference filter and ,for large window sizes, HDBSCAN clustering. 
+	- The multiple window sizes are combined by taking the mean on a pixel by pixel basis
+	- The procedure is able to maintain small scale patterns and sharp boundaries while improving the precision over vegetation free areas from x to y and over vegetated areas from p to q. 
+	- The proposed procedure can be applied to monitor slope displacements in barn and vegetated areas with high robustness and can easily be inserted in additional filtering/ processing steps.
+
+
+Mock abstract:
+
+Large flank movements at volcanoes can lead to devastating landslides and volcanic eruptions. 
+
+Therefore, monitoring of large flank motion is important to reduce the impact of these disasters. 
+
+Ground monitoring is often missing or too sparse to capture the extent and magnitude of slope displacement. 
+
+Fortunately, satellite SAR is able to retrieve flank motion through InSAR, or sub pixel offset tracking (SPOT). 
+
+SPOT is more suitable for detecting large magnitude displacements with an achieved precision of approximately 1/10th of the pixel dimensions. High-resolution SAR data therefore allow for 1-10 cm level precision. 
+
+
+Vegetation and steep slopes degrade the data quality of InSAR and SPOT. Making observation of volcano flank motion in tropical regions difficult. 
+
+We propose a method for robust displacement estimation from pixel offset tracking in steep-sloped and vegetated areas. 
+
+We use high-resolution satellite SAR data over Merapi volcano (Indonesia), which experienced complex cm-m scale displacements in late 2020. 
+
+This displacement relates to the most recent lava-dome building eruption that started on Jan 4 2021. 
+
+For our procedure we first estimate pixel offsets using multiple window sizes. 
+
+Next we detect and remove outliers in the offset data. We test 5 methods (median difference, Local-Outlier-Factor, GDBSCAN, GLOSH, and a combination of median difference and HDBDSCAN. We evaluate the outlier detection performance using the area-under-the-curve of receiver-operator characteristic curves. We find that the Medina difference filter with a filter radius of 7 performs best for small window sizes and the combination of the median difference filter and HDBDCAN (with minimum cluster size of 300 and minimum samples of 1)  performs best for larger window sizes, with AUC values of 0.92 and 0.90 respectively.
+
+Finally we combine the multiple window sizes by taking the mean on a pixel-by=-ixel basis.  
+
+
+The resulting offset maps improve the precision over non-vegetated areas from x to y and in vegetated areas from p to q. 
+
+Additionally, we find that large window sizes mis-represent the position of sharp boundaries and might smooth out small displacement features, thereby resulting in smoothening of sharp boundaries in the multi-kernel average maps. The window sizes need to be selected to limit this undesired smoothing effect.
+
+The proposed procedure can be performed in addition to other specific filtering techniques and can be applied in steep and vegetated terrain with applications for volcano flank motion and landslide areas. 
+
+
+Pre-chatGPT abstract:
+
+
+
+
+Step by step:
+
+- create swath profiles for pair 1
+	- before outlier removal
+	- after outlier removal
+	- MKA
+- run outlier removal and MKA on 4 examples 
+	- with median difference filter
+	- with with combined filter
+
+- check detection of small displacement signal
+- check variability vs. NDVI
+	- before and after filtering
+
+
+
+Swath profiler:
+
+Input
+Start pos [lat lon]
+End pos [lat lon]
+Width [m]
+Delta length [m]
+
+
+Output
+Mean (x)
+Median (x)
+p2.5 (x)
+p97.5 (x)
+
+Steps:
+
+Convert start/end pos to local ute
+Convert all points to utm
+Create swath polygon
+Mask data to polygon
+
+Per delta length:
+Make new polygon
+Get data inside polygon
+Calculate and store statistics. 
+
+Def llh2local(pos,center):
+	...
+
+Def local2llh(pos_local,center):
+	...
+
+Def make_swath(start, end, width):
+	...
+
+Def make_small_poly(start, end, width):
+
+Def swath_profiler(start, end, width, delta, in_lat_lon):
+	# convert to local coords
+	center = mean(start, end)
+	local_start = llh2local(start, center)
+	local_end = llh2local(end, center)
+	in_local = llh2local(in_lat_lon,center)
+
+	# make swath poly
+	swath_poly = make_swath(start_local,end_local,width)
+	# mask data
+	data_sel = inpoly(in_local,swath_poly)
+	swath_data = in_local(data_sel)
+
+
+	# do swath profiler for delta length segments
+	dist = hypot(delta_x,delta_y)
+	heading = atan2(start, end)
+	x = 0
+	while x<= dist:
+		x_end = x + sin/cos(heading)*delta_length)
+		small_poly = make_small_poly(x,x_end,width)
+		small_poly_sel = inpoly(swath_data)
+		mean.append(mean(swath_data(small_poly_sel)))
+		
