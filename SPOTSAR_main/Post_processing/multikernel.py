@@ -461,3 +461,75 @@ class MultiKernel:
                                                                         r)
 
         return [q_mean, q_median, q_std, q_95], coordinate_circles
+
+    
+    def outlier_detection_HDBSCAN_stack(self,N_overlap,min_samples_fact,hard_lim,h5_file):
+        HDBSCAN_list = []
+        GLOSH_list = []
+
+        for obj in self.Stack:
+            overlap = np.ceil((obj.R_win/R_STEP) * (obj.A_win/A_STEP))
+            print(f'current window size: {obj.R_win}, {obj.A_win}, overlap: {overlap}')
+            hard_limit = hard_lim
+            min_cluster_size = np.max([int(np.round(N_overlap*overlap)),hard_limit])
+            min_samples = np.max([1,int(np.round(min_cluster_size*min_samples_fact))])
+            print(f'min cluster size: {min_cluster_size}')
+            print(f'min samples: {min_samples}')
+            # normalize data 
+            obj.prep_DBSCAN(1,1,100)
+            # perform PCA (does not do much)
+            obj.run_PCA(4)
+            # run HDBSCAN + GLOSH
+            f = h5py.File(h5_file,'a')
+            if f'HDBSCAN_labels_{int(min_cluster_size)}_{int(min_samples)}_vec' not in f:
+                f.close()
+                HDBSCAN_labels, GLOSH_probabilities, HDBSCAN_probabilities = obj.run_HDBSCAN(int(min_cluster_size),int(min_samples),False,0.0)
+                HDBSCAN_list.append( HDBSCAN_probabilities)
+                GLOSH_list.append(GLOSH_probabilities)
+                obj.to_hdf5(h5_file,[f'HDBSCAN_labels_{int(min_cluster_size)}_{int(min_samples)}_vec',
+                                    f'HDBSCAN_outlier_scores_{int(min_cluster_size)}_{int(min_samples)}_vec',
+                                    f'HDBSCAN_probabilities_{int(min_cluster_size)}_{int(min_samples)}_vec',
+                                    f'HDBSCAN_labels_{int(min_cluster_size)}_{int(min_samples)}',
+                                    f'HDBSCAN_outlier_scores_{int(min_cluster_size)}_{int(min_samples)}',
+                                    f'HDBSCAN_probabilities_{int(min_cluster_size)}_{int(min_samples)}'])
+        return HDBSCAN_list, GLOSH_list
+
+    def outlier_detection_LOF_stack(self,N_overlap,hard_lim,h5_file):
+        LOF_list = []
+        for obj in self.Stack:
+            print(f'current window size: {obj.R_win}, {obj.A_win}')
+            # get overlap
+            overlap = np.ceil((obj.R_win/R_STEP) * (obj.A_win/A_STEP))
+            hard_limit = hard_lim
+            min_cluster_size = np.max([int(N_overlap*overlap),hard_limit])
+            print(f'knn: {min_cluster_size}')
+            # normalize data 
+            obj.prep_DBSCAN(1,1,100)
+            # perform PCA (does not do much)
+            obj.run_PCA(4)
+            # run LOF
+            f = h5py.File(h5_file,'a')
+            if f'LOF_labels_{int(min_cluster_size)}_vec' not in f:
+                f.close()
+                LOF_labels, LOF_negative_score = obj.run_LOF(n_neighbors=int(min_cluster_size),algorithm='auto',leaf_size=30,contamination='auto')
+                
+                obj.to_hdf5(h5_file,[f'LOF_labels_{int(min_cluster_size)}_vec',
+                                    f'LOF_outlier_score_{int(min_cluster_size)}_vec',
+                                    f'LOF_labels_{int(min_cluster_size)}',
+                                    f'LOF_outlier_scores_{int(min_cluster_size)}'])
+                LOF_list.append(LOF_negative_score)
+        return LOF_list
+
+    def outlier_detection_median_stack(self,filt_rad,h5_file):
+        Median_list = []
+        for obj in self.Stack:
+            print(f'current window size: {obj.R_win}, {obj.A_win}')
+            # run Med filt
+            f = h5py.File(h5_file,'a')
+            if f'Mag_off_med_diff_{filt_rad}_vec' not in f:
+                f.close()
+                R_off_med_diff, A_off_med_diff, mag_off_med_diff = obj.run_med_filt(filt_rad)
+                obj.to_hdf5(h5_file,[f'Mag_off_med_diff_{filt_rad}_vec',
+                                    f'Mag_off_med_diff_{filt_rad}'])
+                Median_list.append(mag_off_med_diff)
+        return Median_list

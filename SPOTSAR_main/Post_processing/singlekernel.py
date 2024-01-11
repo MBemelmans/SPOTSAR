@@ -387,13 +387,17 @@ class SingleKernel:
         
         return R_off_med_diff, A_off_med_diff, np.hypot(R_off_med_diff, A_off_med_diff)
     
-    def rem_outliers_median(self,filt_rad,cut_off):
+    def rem_outliers_median(self,filt_rad,cut_off_frac):
         """
         removes outliers found using median filter difference
         """
         arr_shape = np.shape(self.R_off)
         # nan_mask = self.HDBSCAN_labels == -1  # outliers are class -1
+        max_data = np.nanmax(getattr(self,f'Mag_off_med_diff_{filt_rad}'))
+        cut_off = (1-cut_off_frac)*max_data
+
         nan_mask = getattr(self,f'Mag_off_med_diff_{filt_rad}')>cut_off
+        nan_mask_vec = getattr(self,f'Mag_off_med_diff_{filt_rad}_vec')>cut_off
         self.A_off = np.reshape(np.where(nan_mask, np.nan, self.A_off), arr_shape)
 
         self.R_off = np.reshape(np.where(nan_mask, np.nan, self.R_off), arr_shape)
@@ -412,6 +416,7 @@ class SingleKernel:
         if hasattr(self, "Phase"):
             self.Phase = np.reshape(np.where(nan_mask, np.nan, self.Phase), arr_shape)
         self.Nan_mask2 = np.reshape(nan_mask, arr_shape)
+        return nan_mask, nan_mask_vec
 
     def prep_DBSCAN(self, mode, plot_hist, n_bins):
         """
@@ -609,6 +614,52 @@ class SingleKernel:
         setattr(self,f'HDBSCAN_probabilities_{min_cluster_size}_{min_samples}',HDBSCAN_probabilities)
         
         return HDBSCAN_labels, HDBSCAN_outlier_scores, HDBSCAN_probabilities
+
+
+    # def run_med_HDBSCAN(
+    #     self, filt_rad,cut_off_frac, min_cluster_size, min_samples, single_cluster=False, cluster_selection_epsilon=0.0
+    # ):
+    #     """
+    #     function to perform sequential median filter  + HDBSCAN
+    #     """
+    #     R_off_med_diff, A_off_med_diff, mag_off_med_diff = self.run_med_filt(filt_rad)
+    #     cut_off = cut_off_frac*np.max(mag_off_med_diff)
+    #     med_nan_mask = self.rem_outliers_median(filt_rad,cut_off)
+    #     self.reset_vecs()
+
+    #     self.prep_DBSCAN2(1, 0, 100)
+
+    #     clf_hdb = hdbscan.HDBSCAN(
+    #         min_cluster_size=min_cluster_size,
+    #         min_samples=min_samples,
+    #         allow_single_cluster=single_cluster,
+    #         cluster_selection_epsilon=cluster_selection_epsilon,
+    #     )
+
+    #     # hdb = clf_hdb.fit(self.X_pca)
+    #     hdb = clf_hdb.fit(self.X_pre)
+    #     # self.soft_clusters_vec = hdbscan.all_points_membership_vectors(hdb)
+    #     HDBSCAN_labels_vec = hdb.labels_
+    #     HDBSCAN_outlier_scores_vec = hdb.outlier_scores_
+    #     HDBSCAN_probabilities_vec = hdb.probabilities_
+    #     setattr(self,f'HDBSCAN2_labels_{min_cluster_size}_{min_samples}_vec',HDBSCAN_labels_vec)
+    #     setattr(self,f'HDBSCAN2_outlier_scores_{min_cluster_size}_{min_samples}_vec',HDBSCAN_outlier_scores_vec)
+    #     setattr(self,f'HDBSCAN2_probabilities_{min_cluster_size}_{min_samples}_vec',HDBSCAN_probabilities_vec)
+    #     HDBSCAN_labels = np.full(np.shape(self.R_off), np.nan)
+    #     HDBSCAN_outlier_scores = np.full(np.shape(self.R_off), np.nan)
+    #     HDBSCAN_probabilities = np.full(np.shape(self.R_off), np.nan)
+    #     HDBSCAN_labels[self.Row_index_vec, self.Col_index_vec] = hdb.labels_
+    #     HDBSCAN_outlier_scores[
+    #         self.Row_index_vec, self.Col_index_vec
+    #     ] = hdb.outlier_scores_
+    #     HDBSCAN_probabilities[
+    #         self.Row_index_vec, self.Col_index_vec
+    #     ] = hdb.probabilities_
+    #     setattr(self,f'HDBSCAN2_labels_{min_cluster_size}_{min_samples}',HDBSCAN_labels)
+    #     setattr(self,f'HDBSCAN2_outlier_scores_{min_cluster_size}_{min_samples}',HDBSCAN_outlier_scores)
+    #     setattr(self,f'HDBSCAN2_probabilities_{min_cluster_size}_{min_samples}',HDBSCAN_probabilities)
+        
+    #     return HDBSCAN_labels, HDBSCAN_outlier_scores, HDBSCAN_probabilities
 
     def rem_outliers_HDBSCAN(self,min_cluster_size,min_samples):
         """
