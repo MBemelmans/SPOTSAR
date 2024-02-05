@@ -21,6 +21,6 @@ def plot_hist(obj, attr, n_bins, fig_ax=[], alpha=1, range=[], mask=[]):
     if range == []:
         range = (np.nanmin(hist_data), np.nanmax(hist_data))
     if mask == []:
-        ax0.hist(hist_data, n_bins, range, alpha=alpha)
+        ax0.hist(hist_data.ravel(), n_bins, range, alpha=alpha)
     else:
-        ax0.hist(hist_data[mask], n_bins, range, alpha=alpha)
+        ax0.hist(hist_data[mask].ravel(), n_bins, range, alpha=alpha)
