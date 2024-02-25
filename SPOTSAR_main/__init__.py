@@ -58,4 +58,5 @@ from cmcrameri import cm # for scientific colourmaps
 from . import Post_processing
 from . import plot
 from . import TS_processing
+from . import misc_func
 # from . import tutorials
