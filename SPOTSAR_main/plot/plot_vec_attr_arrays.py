@@ -10,7 +10,7 @@ import pyproj
 from pyproj import CRS
 
 
-from add_axis_cbar import add_right_cax
+from .add_axis_cbar import add_right_cax
 
 def plot_vec_attr_arrays(Lons,Lats,R_off,A_off,attr,step,scale,width =0.005 ,attr_lims=[0,1],qk_length=1,shading = [], dem_extent = [], lat_lims = [], lon_lims = [],qk_pos = [0.05,0.05]):
     """

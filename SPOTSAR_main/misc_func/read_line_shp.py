@@ -13,9 +13,9 @@ def read_line_shp(filename):
     coords_list = []
     for i, line in enumerate(line_shp["geometry"]):
         coords = np.array(list(line.coords))
-        coords_list.append(coords)
+        coords_list.append([coords])
     
-    if np.size(coords_list)==1:
+    if len(coords_list)==1:
         return coords
     else:
-        return coords_list
+        return coords_list 

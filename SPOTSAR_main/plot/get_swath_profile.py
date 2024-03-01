@@ -1,9 +1,10 @@
 import numpy as np
 from inpoly import inpoly2 # for fast inpolygon checks
+from skspatial.objects import Line as sksline
+import scipy.spatial.transform 
 
-
-import swath_line
-import geodetic2enu
+from .swath_line import swath_line
+from .geodetic2enu import geodetic2enu
 
 
 import contextlib

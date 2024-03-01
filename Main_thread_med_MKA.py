@@ -1,65 +1,77 @@
-### import external packages
+### Title: Main script for performing post processing on SAR offset estimates computed with GAMMA.
+### Author: Mark Bemelmans
+### Date created: 2023-11-05
+### Last updated: 2024-02-29
+############################
+#### structure overview ####
+# 1: load dependencies
+# 2: define/load parameters
+# 3: load data
+# 4: load data into 
+#    single_kernel and 
+#    multi-kernel classes
+# 5: filter outliers
+# 6: multi-kernel averaging
+# 7: save to hdf5 files
+#############################
+
+# 1: load dependencies
+#  import external packages
+import sys
+sys.path.append('/Applications/anaconda3/envs/PhD_clean/lib/python3.11/site-packages/')
+
+# general packages
 import numpy as np
 import pandas as pd
-
-import numba
+import numba # for jit compiler code optimization
 from numba import vectorize
 import glob  # for file search
-import copy
+import copy # to create hard copies of data
 import os  # operating system stuff
 import re  # regex
-import fastparquet  # fast read/write for large data structures
-import sklearn.preprocessing as pre  # for data normalisation
-from sklearn.metrics import pairwise_distances
 
-import geopandas as gpd
-import rasterio as rio
-import rasterio.mask
+# geospatial packages
+import geopandas as gpd 
+import rasterio as rio 
+import rasterio.mask 
 from rasterio.plot import plotting_extent
-from shapely.geometry import Polygon
-from shapely.geometry.point import Point
+from shapely.geometry import Polygon 
+from shapely.geometry.point import Point 
 import pyproj
 from pyproj import CRS
-from inpoly import inpoly2  # for fast inpolygon checks
 import utm
 
+# plotting and visualisation packages
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib import cm as mpl_cm
 from matplotlib import colors as mcolors
-
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # for colorbar scaling
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import FormatStrFormatter
-
 import seaborn as sns
 from matplotlib import rc_file_defaults
-
-rc_file_defaults()
-# sns.set(style=None, color_codes=True)
-
-from shapely.geometry import Polygon
-from shapely.geometry.point import Point
-import datetime
-
-import configparser
-
+rc_file_defaults() # reset Matplotlib defaults after loading seaborn
 from cmcrameri import cm  # for scientific colourmaps
 
-import h5py
+# misc packages
+import sklearn.preprocessing as pre  # for data normalisation
+from sklearn.metrics import pairwise_distances # fast distance matrix calculation
+from inpoly import inpoly2  # for fast inpolygon checks
+import datetime # for date-time data types
+import configparser # to work with warning suppression
+import h5py # read/write hdf5 files
 
 ###########################
 # import main local package
 import SPOTSAR_main as sm
 
-
-### define constants
-
-################ Define user INPUTS #######################
-######## please edit the values of this block only ########
-###########################################################
+## 2: define/load parameters
+################ Define user INPUTS ################################################
+######## please edit the values of this block only #################################
+####################################################################################
 
 # define hillshade file
 HS_FILE = "/local-scratch/tz20896/Merapi2021/geo/TDX_Merapi_WGS84.tif"
@@ -83,17 +95,42 @@ DIRECTORY_PATH = "../PO_SBAS_PAIRS/DISP_TXT/"
 # define path to ccp and ccs files
 DIRECTORY_PATH_CCS = "../PO_SBAS_PAIRS/CCP_CCS/"
 
+# define regex to find files in paths defined above
+CSK_off_regex = r"c[0-9]+_c[0-9]+_disp_[0-9]+_[0-9]+.txt"
+CSK_ccs_regex = r"c[0-9]+_c[0-9]+_ccs_[0-9]+_[0-9]"
 
+# filtering params
+med_filt_radius = 7
+cut_off_med = 0.9
+MKA_indices = [0,1,2]
+
+###########################################################
+############## end of editing box #########################
+###########################################################
+
+# read parameters from text file
+config = configparser.ConfigParser()
+config.read(PARAM_FILE)
+WIDTH = int(config.get("params", "width"))
+LINES = int(config.get("params", "lines"))
+WIDTH_CCS = int(config.get("params", "width_ccs"))
+LINES_CCS = int(config.get("params", "lines_ccs"))
+R_START = int(config.get("params", "r_start"))
+A_START = int(config.get("params", "a_start"))
+R_STEP = int(config.get("params", "r_step"))
+A_STEP = int(config.get("params", "a_step"))
+HEADING = float(config.get("params", "heading"))
+MEAN_INC = float(config.get("params", "mean_inc"))
 
 
 ### load data ###
 pair_names = sm.Post_processing.get_image_pairs(
-    DIRECTORY_PATH, r"c[0-9]+_c[0-9]+_disp_[0-9]+_[0-9]+.txt", 19
+    DIRECTORY_PATH, CSK_off_regex, 19
 )
 print(pair_names)
 
 pair_names_ccs = sm.Post_processing.get_image_pairs(
-    DIRECTORY_PATH_CCS, r"c[0-9]+_c[0-9]+_ccs_[0-9]+_[0-9]", 19
+    DIRECTORY_PATH_CCS, CSK_ccs_regex, 19
 )
 print(pair_names_ccs)
 
@@ -111,28 +148,14 @@ DEM_EXTENT = [
     DEM_HS.bounds.top,
 ]
 
-# read parameters from text file
-config = configparser.ConfigParser()
-config.read(PARAM_FILE)
-WIDTH = int(config.get("params", "width"))
-LINES = int(config.get("params", "lines"))
-WIDTH_CCS = int(config.get("params", "width_ccs"))
-LINES_CCS = int(config.get("params", "lines_ccs"))
-R_START = int(config.get("params", "r_start"))
-A_START = int(config.get("params", "a_start"))
-R_STEP = int(config.get("params", "r_step"))
-A_STEP = int(config.get("params", "a_step"))
-HEADING = float(config.get("params", "heading"))
-MEAN_INC = float(config.get("params", "mean_inc"))
 
-
-# filtering params
-med_filt_radius = 7
-cut_off_med = 0.9
-MKA_indices = [0,1,2]
+## 3-7: functional part
+#######################################################################
 
 ### load data into memory
 for pair_name in pair_names:
+
+    ### 3: load data
     # print progress
     print(f'Running pair: {pair_name}')
 
@@ -145,7 +168,7 @@ for pair_name in pair_names:
     pair_files = [file for file in files if file[:19]==pair_name]
     pair_files_ccs = [file for file in files_ccs if file[:23]==pair_name+'_ccs']
 
-    # get range window to sort data files
+    # get range window size to sort data files
     r_win = []
     for pair_file in pair_files:
         r_win.append(int(pair_file.split('_')[-2]))
@@ -158,6 +181,7 @@ for pair_name in pair_names:
     sort_idx_ccs = np.argsort(r_win_ccs)
     sorted_pair_files_ccs = [pair_files_ccs[i] for i in sort_idx_ccs]
 
+    ### 4: add data to single-kernel and Multi-kernel classes
     # add data to stack
     datastack = sm.Post_processing.MultiKernel(DIRECTORY_PATH,
                                                 sorted_pair_files,
@@ -211,6 +235,7 @@ for pair_name in pair_names:
                         'win_3_Lon_post', 'win_3_lat_post', 'win_3_R_off_post', 'win_3_A_off_post',
                         ]
 
+    ### 5: filter outliers using median filter
     # print progress
     print(f'Perform Median filtering on pair: {pair_name}')
 
@@ -236,13 +261,16 @@ for pair_name in pair_names:
         f.create_dataset(column_names_post[2 + i*4], data = getattr(obj,attr_names[2 + i*4]))
         f.create_dataset(column_names_post[3 + i*4], data = getattr(obj,attr_names[3 + i*4]))
         f.close()
+
+
+    ### 6: perfrom Multi-kernel averaging
     print(f'Perform MKA on pair: {pair_name}')
     MKA_R_off, MKA_A_off = sm.Post_processing.Run_MKA(datastack,MKA_indices,1,1,5)
     # retrieve MKA results
     MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA = sm.Post_processing.get_MKA_vec(datastack)
     MKA_data_obj = sm.Post_processing.MKA_data(MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA)
 
-    # store results in hdf5 file
+    ### 7: store results in hdf5 file
     column_names_MKA = ['win_13_Lon', 'win_13_lat', 'win_13_R_off', 'win_13_A_off']
     attr_names_MKA = ['Lon_off_MKA','Lat_off_MKA','MKA_R_off','MKA_A_off']
 
