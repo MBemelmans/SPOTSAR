@@ -1,7 +1,8 @@
-### Title: Main script for performing post processing on SAR offset estimates computed with GAMMA.
+### Title: Main script for performing bulk post-processing on SAR offset estimates computed with GAMMA.
 ### Author: Mark Bemelmans
 ### Date created: 2023-11-05
 ### Last updated: 2024-02-29
+############################
 ############################
 #### structure overview ####
 # 1: load dependencies
@@ -23,8 +24,6 @@ sys.path.append('/Applications/anaconda3/envs/PhD_clean/lib/python3.11/site-pack
 # general packages
 import numpy as np
 import pandas as pd
-import numba # for jit compiler code optimization
-from numba import vectorize
 import glob  # for file search
 import copy # to create hard copies of data
 import os  # operating system stuff
@@ -67,18 +66,19 @@ import h5py # read/write hdf5 files
 ###########################
 # import main local package
 import SPOTSAR_main as sm
+from SPOTSAR_main.Post_processing.MKA_data import MKA_data
 
 ## 2: define/load parameters
 ################ Define user INPUTS ################################################
 ######## please edit the values of this block only #################################
 ####################################################################################
 
-# define hillshade file
-HS_FILE = "/local-scratch/tz20896/Merapi2021/geo/TDX_Merapi_WGS84.tif"
+# # define hillshade file
+# HS_FILE = "/local-scratch/tz20896/Merapi2021/geo/TDX_Merapi_WGS84.tif"
 
 # define lon and lat files
-LON_FILE = "/local-scratch/tz20896/Merapi2021/CSK/dsc1/geo2/20200910.lon"
-LAT_FILE = "/local-scratch/tz20896/Merapi2021/CSK/dsc1/geo2/20200910.lat"
+LON_FILE = "../DATA4_SPOTSAR_DEMO/CSK_dsc/geo/20200910.lon"
+LAT_FILE = "../DATA4_SPOTSAR_DEMO/CSK_dsc/geo/20200910.lat"
 
 # define parameter text file
 PARAM_FILE = "./params.txt"
@@ -91,9 +91,9 @@ lat_lims = [-7.555, -7.535]
 vmax = 3  # range of colourscale in meters
 
 # define file names for data, lon and lat
-DIRECTORY_PATH = "../PO_SBAS_PAIRS/DISP_TXT/"
+DIRECTORY_PATH = "../DATA4_SPOTSAR_DEMO/CSK_dsc/DISP_TXT/"
 # define path to ccp and ccs files
-DIRECTORY_PATH_CCS = "../PO_SBAS_PAIRS/CCP_CCS/"
+DIRECTORY_PATH_CCS = "../DATA4_SPOTSAR_DEMO/CSK_dsc/CCP_CCS/"
 
 # define regex to find files in paths defined above
 CSK_off_regex = r"c[0-9]+_c[0-9]+_disp_[0-9]+_[0-9]+.txt"
@@ -103,6 +103,9 @@ CSK_ccs_regex = r"c[0-9]+_c[0-9]+_ccs_[0-9]+_[0-9]"
 med_filt_radius = 7
 cut_off_med = 0.9
 MKA_indices = [0,1,2]
+
+# define output folder for #pairname.h5 file
+H5_FOLDER = '../DATA4_SPOTSAR_DEMO/CSK_dsc/h5_files/'
 
 ###########################################################
 ############## end of editing box #########################
@@ -134,19 +137,17 @@ pair_names_ccs = sm.Post_processing.get_image_pairs(
 )
 print(pair_names_ccs)
 
-# open hillshade file and re-order offset and CCS files
+# # open hill shade file with rasterio
+# DEM_HS = rio.open(HS_FILE)
+# SHADING = DEM_HS.read(1, masked=True)  # rasterio bands are indexed from 1
 
-# open hill shade file with rasterio
-DEM_HS = rio.open(HS_FILE)
-SHADING = DEM_HS.read(1, masked=True)  # rasterio bands are indexed from 1
-
-# extract DEM extent
-DEM_EXTENT = [
-    DEM_HS.bounds.left,
-    DEM_HS.bounds.right,
-    DEM_HS.bounds.bottom,
-    DEM_HS.bounds.top,
-]
+# # extract DEM extent
+# DEM_EXTENT = [
+#     DEM_HS.bounds.left,
+#     DEM_HS.bounds.right,
+#     DEM_HS.bounds.bottom,
+#     DEM_HS.bounds.top,
+# ]
 
 
 ## 3-7: functional part
@@ -217,18 +218,8 @@ for pair_name in pair_names:
                   ]
 
     h5_file = f'../PO_SBAS_PAIRS/h5_files/{name}.h5'
-    # if os.path.exists(h5_file):
-    #     print(f'skipping {h5_file}, file exists')
-    #     continue
-    # else:
-    #     for i, obj in enumerate(datastack.Stack):
-    #         print(f'creating {h5_file}')
-    #         f = h5py.File(h5_file,'a')
-    #         f.create_dataset(column_names[0 + i*4], data = getattr(obj,attr_names[0 + i*4]))
-    #         f.create_dataset(column_names[1 + i*4], data = getattr(obj,attr_names[1 + i*4]))
-    #         f.create_dataset(column_names[2 + i*4], data = getattr(obj,attr_names[2 + i*4]))
-    #         f.create_dataset(column_names[3 + i*4], data = getattr(obj,attr_names[3 + i*4]))
-    #         f.close()
+    h5_file = f'{H5_FOLDER}{name}.h5'
+
 
     column_names_post = ['win_1_Lon_post', 'win_1_lat_post', 'win_1_R_off_post', 'win_1_A_off_post',
                         'win_2_Lon_post', 'win_2_lat_post', 'win_2_R_off_post', 'win_2_A_off_post',
@@ -238,12 +229,6 @@ for pair_name in pair_names:
     ### 5: filter outliers using median filter
     # print progress
     print(f'Perform Median filtering on pair: {pair_name}')
-
-
-    ### old code to skip one specific file
-    # if h5_file == '../PO_SBAS_PAIRS/h5_files/c20200910_c20200919.h5':
-    #     a = 1
-    # else:
 
     # run outlier filtering and MKA on multi-kernel image pair 
     for i, obj in enumerate(datastack.Stack):
@@ -267,8 +252,8 @@ for pair_name in pair_names:
     print(f'Perform MKA on pair: {pair_name}')
     MKA_R_off, MKA_A_off = sm.Post_processing.Run_MKA(datastack,MKA_indices,1,1,5)
     # retrieve MKA results
-    MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA = sm.Post_processing.get_MKA_vec(datastack)
-    MKA_data_obj = sm.Post_processing.MKA_data(MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA)
+    MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA = sm.Post_processing.get_MKA_vec(datastack,R_STEP,A_STEP)
+    MKA_data_obj = MKA_data(MKA_R_off_vec, MKA_A_off_vec, Lon_off_MKA_vec, Lat_off_MKA_vec, MKA_R_off, MKA_A_off, Lon_off_MKA, Lat_off_MKA)
 
     ### 7: store results in hdf5 file
     column_names_MKA = ['win_13_Lon', 'win_13_lat', 'win_13_R_off', 'win_13_A_off']

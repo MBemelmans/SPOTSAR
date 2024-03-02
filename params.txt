@@ -1,0 +1,20 @@
+[params]
+# define dimensions of lat lon files
+width: 17478
+lines: 14394
+# define dimensions of ccs files
+width_ccs: 468
+lines_ccs: 760
+
+# define starting position of cropped data in lat lon files
+r_start: 1324
+a_start: 2235
+# define step size of the pixel offset tracking to correctely 
+# assign lat lon values 
+r_step: 24
+a_step: 12
+
+# define heading and incidence angle
+heading:  -167.9496230
+mean_inc: 35.6625
+

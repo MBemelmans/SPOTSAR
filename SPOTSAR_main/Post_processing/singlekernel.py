@@ -750,119 +750,119 @@ class SingleKernel:
 
         return LOF_labels, LOF_outlier_scores
 
-    # @vectorize(['float64(float64,float64)'])
-    def calc_local_L2(self):
-        """calculates local outlier disimilarity score
+    # # @vectorize(['float64(float64,float64)'])
+    # def calc_local_L2(self):
+    #     """calculates local outlier disimilarity score
 
-        Returns:
-            _type_: _description_
-        """
+    #     Returns:
+    #         _type_: _description_
+    #     """
 
-        def slow_haversine_distances(x, y):
-            diff_lat = y[:, 0] - x[0]
-            diff_lon = y[:, 1] - x[1]
-            a = np.sin(diff_lat / 2) ** 2 + (
-                np.cos(x[0]) * np.cos(y[:, 0]) * np.sin(diff_lon / 2) ** 2
-            )
-            c = 2 * np.arcsin(np.sqrt(a))
-            return c
+    #     def slow_haversine_distances(x, y):
+    #         diff_lat = y[:, 0] - x[0]
+    #         diff_lon = y[:, 1] - x[1]
+    #         a = np.sin(diff_lat / 2) ** 2 + (
+    #             np.cos(x[0]) * np.cos(y[:, 0]) * np.sin(diff_lon / 2) ** 2
+    #         )
+    #         c = 2 * np.arcsin(np.sqrt(a))
+    #         return c
 
-        power = 2
+    #     power = 2
 
-        # get vector info
-        wL2 = np.full(np.shape(self.X_off), np.nan)
+    #     # get vector info
+    #     wL2 = np.full(np.shape(self.X_off), np.nan)
 
-        # initialize data for vectorize decorator
-        X_off_vec = self.X_off_vec  # float64
-        Y_off_vec = self.Y_off_vec  # float64
-        Lat_off_vec = np.radians(self.Lat_off_vec)  # float64
-        Lon_off_vec = np.radians(self.Lon_off_vec)  # float64
-        R_idx_vec = self.R_idx_vec  # int32
-        A_idx_vec = self.A_idx_vec  # int32
-        Row_index_vec = self.Row_index_vec  # int32
-        Col_index_vec = self.Col_index_vec  # int32
-        A_win = self.A_win  # int32
-        R_win = self.R_win  # int32
+    #     # initialize data for vectorize decorator
+    #     X_off_vec = self.X_off_vec  # float64
+    #     Y_off_vec = self.Y_off_vec  # float64
+    #     Lat_off_vec = np.radians(self.Lat_off_vec)  # float64
+    #     Lon_off_vec = np.radians(self.Lon_off_vec)  # float64
+    #     R_idx_vec = self.R_idx_vec  # int32
+    #     A_idx_vec = self.A_idx_vec  # int32
+    #     Row_index_vec = self.Row_index_vec  # int32
+    #     Col_index_vec = self.Col_index_vec  # int32
+    #     A_win = self.A_win  # int32
+    #     R_win = self.R_win  # int32
 
-        def do_loops(
-            X_off_vec,
-            Y_off_vec,
-            Lat_off_vec,
-            Lon_off_vec,
-            R_idx_vec,
-            A_idx_vec,
-            Row_index_vec,
-            Col_index_vec,
-            A_win,
-            R_win,
-        ):
-            for idx in range(np.size(X_off_vec)):
-                if np.mod(idx, 1000) == 0:
-                    print(idx)
+    #     def do_loops(
+    #         X_off_vec,
+    #         Y_off_vec,
+    #         Lat_off_vec,
+    #         Lon_off_vec,
+    #         R_idx_vec,
+    #         A_idx_vec,
+    #         Row_index_vec,
+    #         Col_index_vec,
+    #         A_win,
+    #         R_win,
+    #     ):
+    #         for idx in range(np.size(X_off_vec)):
+    #             if np.mod(idx, 1000) == 0:
+    #                 print(idx)
 
-                q_vec = (X_off_vec[idx], Y_off_vec[idx])
-                q_pos = [[Lat_off_vec[idx], Lon_off_vec[idx]]]
-                q_r_idx = int(R_idx_vec[idx])
-                q_a_idx = int(A_idx_vec[idx])
+    #             q_vec = (X_off_vec[idx], Y_off_vec[idx])
+    #             q_pos = [[Lat_off_vec[idx], Lon_off_vec[idx]]]
+    #             q_r_idx = int(R_idx_vec[idx])
+    #             q_a_idx = int(A_idx_vec[idx])
 
-                # how much to overlap?
-                # window has some overlap if n*step_size<window_size
-                region_filter = np.where(
-                    (np.abs(R_idx_vec - q_r_idx) < R_win)
-                    & (np.abs(A_idx_vec - q_a_idx) < A_win)
-                    & (R_idx_vec != q_r_idx)
-                    & (A_idx_vec != q_a_idx)
-                )
+    #             # how much to overlap?
+    #             # window has some overlap if n*step_size<window_size
+    #             region_filter = np.where(
+    #                 (np.abs(R_idx_vec - q_r_idx) < R_win)
+    #                 & (np.abs(A_idx_vec - q_a_idx) < A_win)
+    #                 & (R_idx_vec != q_r_idx)
+    #                 & (A_idx_vec != q_a_idx)
+    #             )
 
-                if np.sum(region_filter) == 0:
-                    continue
-                Q_region_r_idx = R_idx_vec[region_filter]
-                Q_region_a_idx = A_idx_vec[region_filter]
+    #             if np.sum(region_filter) == 0:
+    #                 continue
+    #             Q_region_r_idx = R_idx_vec[region_filter]
+    #             Q_region_a_idx = A_idx_vec[region_filter]
 
-                # get distances
-                lons_Q_region = Lon_off_vec[region_filter]
-                lats_Q_region = Lat_off_vec[region_filter]
-                Dx = X_off_vec[region_filter] - q_vec[0]
-                Dy = Y_off_vec[region_filter] - q_vec[1]
+    #             # get distances
+    #             lons_Q_region = Lon_off_vec[region_filter]
+    #             lats_Q_region = Lat_off_vec[region_filter]
+    #             Dx = X_off_vec[region_filter] - q_vec[0]
+    #             Dy = Y_off_vec[region_filter] - q_vec[1]
 
-                Q_latlon = np.column_stack((lats_Q_region, lons_Q_region))
-                dists = haversine_distances(Q_latlon, q_pos)
+    #             Q_latlon = np.column_stack((lats_Q_region, lons_Q_region))
+    #             dists = haversine_distances(Q_latlon, q_pos)
 
-                weights = 1 / (dists**power)
-                weights = weights / np.sum(weights)
-                wL2[Row_index_vec[idx], Col_index_vec[idx]] = np.sum(
-                    np.hypot(Dx, Dy) * weights
-                ) / np.size(dists)
-            return wL2
+    #             weights = 1 / (dists**power)
+    #             weights = weights / np.sum(weights)
+    #             wL2[Row_index_vec[idx], Col_index_vec[idx]] = np.sum(
+    #                 np.hypot(Dx, Dy) * weights
+    #             ) / np.size(dists)
+    #         return wL2
 
-        self.wL2 = do_loops(
-            X_off_vec,
-            Y_off_vec,
-            Lat_off_vec,
-            Lon_off_vec,
-            R_idx_vec,
-            A_idx_vec,
-            Row_index_vec,
-            Col_index_vec,
-            A_win,
-            R_win,
-        )
-        return self.wL2
+    #     self.wL2 = do_loops(
+    #         X_off_vec,
+    #         Y_off_vec,
+    #         Lat_off_vec,
+    #         Lon_off_vec,
+    #         R_idx_vec,
+    #         A_idx_vec,
+    #         Row_index_vec,
+    #         Col_index_vec,
+    #         A_win,
+    #         R_win,
+    #     )
+    #     return self.wL2
 
-    def get_data_4_wL2(self):
-        return [
-            self.X_off,
-            self.X_off_vec,
-            self.Y_off_vec,
-            self.Lat_off_vec,
-            self.Lon_off_vec,
-            self.R_idx_vec,
-            self.A_idx_vec,
-            self.Row_index_vec,
-            self.Col_index_vec,
-            self.A_win,
-            self.R_win,
-        ]
+    # def get_data_4_wL2(self):
+    #     return [
+    #         self.X_off,
+    #         self.X_off_vec,
+    #         self.Y_off_vec,
+    #         self.Lat_off_vec,
+    #         self.Lon_off_vec,
+    #         self.R_idx_vec,
+    #         self.A_idx_vec,
+    #         self.Row_index_vec,
+    #         self.Col_index_vec,
+    #         self.A_win,
+    #         self.R_win,
+    #     ]
 
     def to_hdf5(self,filename,query_keys):
         """Creates hdf5 file for specified query keys.

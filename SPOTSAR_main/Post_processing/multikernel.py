@@ -136,6 +136,10 @@ class MultiKernel:
         # make new list of data that has common bounds 
         common_mask_data = []
         for d in self.Data:
+            # change endianness (only needed for demo?)
+            for d_i in range(np.shape(d)[1]):
+                if d[d_i].dtype == '>f4':
+                    d[d_i] = d[d_i].astype('<f4')
             d_crop = d.loc[(d[0] >= rng_min) & (d[1] >= azi_min) & (d[0] <= rng_max) & (d[1] <= azi_max)].reset_index(drop=True)
             common_mask_data.append(d_crop)
         
@@ -283,105 +287,105 @@ class MultiKernel:
         return self.MKA_R_off, self.MKA_A_off
     
 
-    def Run_RSS(self,indeces=[],window_size=5,deramp=True):
-        # """
-        # Calculate residual sum of squares. user can specify window size and can turn off deramping if desired
+    # def Run_RSS(self,indeces=[],window_size=5,deramp=True):
+    #     # """
+    #     # Calculate residual sum of squares. user can specify window size and can turn off deramping if desired
 
-        # Args:
-        #     indices (list, optional): indices of slices from datastack used for MKA. Defaults to [], use all data.
-        #     window_size (int, optional): window dimension for MKA, odd numbers 
-        #                                  prefered because of pixel centering. 
-        #                                  Defaults to 5.
-        #     deramp (bool, optional): flag for deramping data in map coordinates 
-        #                              to allow for better estimates in gradual displacement 
-        #                              fields. deramping in map coordinates does not do local 
-        #                              transformation to ortholinear projection so there may 
-        #                              be inaccuracies. 
-        # Returns:
-        #     RSS_list: list of resisual sum of squares
-        # """
-        # get stack data
-        if indeces==[]:
-            stack_R = [obj.R_off for obj in self.Stack]
-            stack_A = [obj.A_off for obj in self.Stack]
-            stack_lon = [getattr(obj,'Lon_off') for obj in self.Stack]
-            stack_lat = [getattr(obj,'Lat_off') for obj in self.Stack]
+    #     # Args:
+    #     #     indices (list, optional): indices of slices from datastack used for MKA. Defaults to [], use all data.
+    #     #     window_size (int, optional): window dimension for MKA, odd numbers 
+    #     #                                  prefered because of pixel centering. 
+    #     #                                  Defaults to 5.
+    #     #     deramp (bool, optional): flag for deramping data in map coordinates 
+    #     #                              to allow for better estimates in gradual displacement 
+    #     #                              fields. deramping in map coordinates does not do local 
+    #     #                              transformation to ortholinear projection so there may 
+    #     #                              be inaccuracies. 
+    #     # Returns:
+    #     #     RSS_list: list of resisual sum of squares
+    #     # """
+    #     # get stack data
+    #     if indeces==[]:
+    #         stack_R = [obj.R_off for obj in self.Stack]
+    #         stack_A = [obj.A_off for obj in self.Stack]
+    #         stack_lon = [getattr(obj,'Lon_off') for obj in self.Stack]
+    #         stack_lat = [getattr(obj,'Lat_off') for obj in self.Stack]
 
-        else:
-            substack = [self.Stack[i] for i in indeces]
-            stack_R = np.stack([obj.R_off for obj in substack],axis=0)
-            stack_A = np.stack([obj.A_off for obj in substack],axis=0)
-            stack_lons = np.stack([getattr(obj,'Lon_off') for obj in substack])
-            stack_lats = np.stack([getattr(obj,'Lat_off') for obj in substack])
+    #     else:
+    #         substack = [self.Stack[i] for i in indeces]
+    #         stack_R = np.stack([obj.R_off for obj in substack],axis=0)
+    #         stack_A = np.stack([obj.A_off for obj in substack],axis=0)
+    #         stack_lons = np.stack([getattr(obj,'Lon_off') for obj in substack])
+    #         stack_lats = np.stack([getattr(obj,'Lat_off') for obj in substack])
 
-        # create list of rss values
-        rss_list = []
+    #     # create list of rss values
+    #     rss_list = []
 
-        for stack_r,stack_a,stack_lon,stack_lat in zip(stack_R,stack_A,stack_lons,stack_lats):
-            # set window size according to stack dimensions
-            window_shape = (stack_r.shape[0], window_size, window_size)
-            print(np.shape(window_shape))
-            # use np.lib.stride_tricks.sliding_window_view to devided data into windows
-            # 1.2xfaster than sklearn view_as_windows
-            win_data_r = np.lib.stride_tricks.sliding_window_view(stack_r, window_shape)[0]
-            win_data_a = np.lib.stride_tricks.sliding_window_view(stack_a, window_shape)[0]
+    #     for stack_r,stack_a,stack_lon,stack_lat in zip(stack_R,stack_A,stack_lons,stack_lats):
+    #         # set window size according to stack dimensions
+    #         window_shape = (stack_r.shape[0], window_size, window_size)
+    #         print(np.shape(window_shape))
+    #         # use np.lib.stride_tricks.sliding_window_view to devided data into windows
+    #         # 1.2xfaster than sklearn view_as_windows
+    #         win_data_r = np.lib.stride_tricks.sliding_window_view(stack_r, window_shape)[0]
+    #         win_data_a = np.lib.stride_tricks.sliding_window_view(stack_a, window_shape)[0]
 
-            win_data_lon = np.lib.stride_tricks.sliding_window_view(stack_lon, window_shape)[0]
-            win_data_lat = np.lib.stride_tricks.sliding_window_view(stack_lat, window_shape)[0]
+    #         win_data_lon = np.lib.stride_tricks.sliding_window_view(stack_lon, window_shape)[0]
+    #         win_data_lat = np.lib.stride_tricks.sliding_window_view(stack_lat, window_shape)[0]
             
-            # define shape of multi-kernel averaged map (same as input data), filled with nan
-            Avg_map_r = np.full(stack_r.shape[1:], np.nan)
-            Avg_map_a = np.full(stack_a.shape[1:], np.nan)
+    #         # define shape of multi-kernel averaged map (same as input data), filled with nan
+    #         Avg_map_r = np.full(stack_r.shape[1:], np.nan)
+    #         Avg_map_a = np.full(stack_a.shape[1:], np.nan)
 
 
 
-            # per window, go take 95% confidence interval data and take average (mean)
-            for win_i in range(win_data_r.shape[0]):
-                if win_i % 50 == 0:
-                    print('win_i', win_i)
-                for win_j in range(win_data_r.shape[1]):
-                    # extract relevant window
-                    win_r = win_data_r[win_i, win_j]
-                    win_a = win_data_a[win_i, win_j]
+    #         # per window, go take 95% confidence interval data and take average (mean)
+    #         for win_i in range(win_data_r.shape[0]):
+    #             if win_i % 50 == 0:
+    #                 print('win_i', win_i)
+    #             for win_j in range(win_data_r.shape[1]):
+    #                 # extract relevant window
+    #                 win_r = win_data_r[win_i, win_j]
+    #                 win_a = win_data_a[win_i, win_j]
                     
-                    lon_win = win_data_lon[win_i,win_j]
-                    lat_win = win_data_lat[win_i,win_j]
-                    # calculate 95 % confidence interval
-                    percentiles_r = np.nanpercentile(win_r, [2.5, 97.5])
-                    percentiles_a = np.nanpercentile(win_a, [2.5, 97.5])
-                    # mask data outside 95% confidence interval with nan
-                    mask_r = (win_r < percentiles_r[0]) | (win_r > percentiles_r[1])
-                    mask_a = (win_a < percentiles_a[0]) | (win_a > percentiles_a[1])
-                    mask = (mask_r | mask_a)
-                    win_r[mask] = np.nan
-                    win_a[mask] = np.nan
-                    lon_win[mask] = np.nan
-                    lat_win[mask] = np.nan
+    #                 lon_win = win_data_lon[win_i,win_j]
+    #                 lat_win = win_data_lat[win_i,win_j]
+    #                 # calculate 95 % confidence interval
+    #                 percentiles_r = np.nanpercentile(win_r, [2.5, 97.5])
+    #                 percentiles_a = np.nanpercentile(win_a, [2.5, 97.5])
+    #                 # mask data outside 95% confidence interval with nan
+    #                 mask_r = (win_r < percentiles_r[0]) | (win_r > percentiles_r[1])
+    #                 mask_a = (win_a < percentiles_a[0]) | (win_a > percentiles_a[1])
+    #                 mask = (mask_r | mask_a)
+    #                 win_r[mask] = np.nan
+    #                 win_a[mask] = np.nan
+    #                 lon_win[mask] = np.nan
+    #                 lat_win[mask] = np.nan
                     
-                    #deramp
-                    if deramp:
-                        X_data = np.transpose(np.stack((lon_win.flatten(),lat_win.flatten())))
-                        Y_data_r = win_r.flatten()
-                        reg = linear_model.LinearRegression().fit(X_data, Y_data_r)
-                        deramped_r =win_r.flatten() - lon_win.flatten() * reg.coef_[0] - lat_win.flatten() * reg.coef_[1]
+    #                 #deramp
+    #                 if deramp:
+    #                     X_data = np.transpose(np.stack((lon_win.flatten(),lat_win.flatten())))
+    #                     Y_data_r = win_r.flatten()
+    #                     reg = linear_model.LinearRegression().fit(X_data, Y_data_r)
+    #                     deramped_r =win_r.flatten() - lon_win.flatten() * reg.coef_[0] - lat_win.flatten() * reg.coef_[1]
 
-                        Y_data_a = win_a.flatten()
-                        reg = linear_model.LinearRegression().fit(X_data, Y_data_a)
-                        deramped_a =win_a.flatten() - lon_win.flatten() * reg.coef_[0] - lat_win.flatten() * reg.coef_[1]
-                    else:
-                        deramped_r = win_r.flatten()
-                        deramped_a = win_a.flatten()
+    #                     Y_data_a = win_a.flatten()
+    #                     reg = linear_model.LinearRegression().fit(X_data, Y_data_a)
+    #                     deramped_a =win_a.flatten() - lon_win.flatten() * reg.coef_[0] - lat_win.flatten() * reg.coef_[1]
+    #                 else:
+    #                     deramped_r = win_r.flatten()
+    #                     deramped_a = win_a.flatten()
 
-                    # calculate mean of window (offset by floor(window_size/2) because of border)
-                    offset = window_size // 2
-                    Avg_map_r[win_i + offset, win_j + offset] = np.nanstd(deramped_r)**2
-                    Avg_map_a[win_i + offset, win_j + offset] = np.nanstd(deramped_a)**2
+    #                 # calculate mean of window (offset by floor(window_size/2) because of border)
+    #                 offset = window_size // 2
+    #                 Avg_map_r[win_i + offset, win_j + offset] = np.nanstd(deramped_r)**2
+    #                 Avg_map_a[win_i + offset, win_j + offset] = np.nanstd(deramped_a)**2
                     
-                    rss = (np.sum(Avg_map_r),np.sum(Avg_map_a))
-            rss_list.append(rss)
-        self.Rss_list = rss_list
+    #                 rss = (np.sum(Avg_map_r),np.sum(Avg_map_a))
+    #         rss_list.append(rss)
+    #     self.Rss_list = rss_list
 
-        return self.Rss_list
+    #     return self.Rss_list
     
 
     def query_point_stack(self,data_attr_name,q_lats,q_lons,r,indeces=[]):
