@@ -1,0 +1,2 @@
+110.445 -7.54 0 16p,Helvetica-Bold,black TR Merapi
+115.507 -8.343 0 16p,Helvetica-Bold,black BL Agung

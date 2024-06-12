@@ -53,7 +53,7 @@ PROJECTION_INSET = f"M5c"
 AREA_THRESH = 10_000
 
 # download topo data at 30 arc sec. resolution
-grid2 = pygmt.datasets.load_earth_relief(resolution="15s",region=REGION)
+grid2 = pygmt.datasets.load_earth_relief(resolution="01m",region=REGION)
 
 fig = pygmt.Figure()
 fig.grdview(grid=grid2,

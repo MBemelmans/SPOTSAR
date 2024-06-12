@@ -1,0 +1,3 @@
+N1
+S black 0.35c - 0.4c - 0.5p,red 0.8c Unknown
+S black 0.35c f+r+t 1c/-3/0.3c darkred thin,black 0.8c ConvergentS black 0.35c - 0.4c thin,green 0.8c DivergentS black 0.35c f+l+s45 0.45c/-1/0.16c black 0.5p,black 0.8c Transform
